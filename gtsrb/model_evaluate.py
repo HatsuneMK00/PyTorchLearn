@@ -28,7 +28,7 @@ data_transform = transforms.Compose([
     transforms.Resize((112, 112)),
     OcclusionTransform(occlusion_height=30, occlusion_width=30),
     transforms.ToTensor(),
-    # transforms.Normalize((0.3337, 0.3064, 0.3171), (0.2672, 0.2564, 0.2629))
+    transforms.Normalize((0.3337, 0.3064, 0.3171), (0.2672, 0.2564, 0.2629))
 ])
 
 # define the test dataset
@@ -42,7 +42,10 @@ samples, labels = iter(test_loader).next()
 print(samples.shape)
 def imshow(img):
     npimg = img.numpy()
-    plt.imshow(np.transpose(npimg, (1, 2, 0)))
+    npimg = np.transpose(npimg, (1, 2, 0))
+    # unnormalize the image, it's working, and the warning can be ignored
+    npimg = npimg * np.array((0.2672, 0.2564, 0.2629)) + np.array((0.3337, 0.3064, 0.3171))
+    plt.imshow(npimg)
     plt.show()
 imshow(torchvision.utils.make_grid(samples))
 
