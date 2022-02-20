@@ -14,6 +14,7 @@ from torch.utils.data import DataLoader
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 model = AlexnetTSR()
 model.load_state_dict(torch.load('../model/cnn_model_gtsrb.pth', map_location=device))
+model = model.to(device)
 
 # define some hyperparameters
 output_dim = OUTPUT_DIM
