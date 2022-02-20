@@ -19,7 +19,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 data_transform = transforms.Compose([
     transforms.Resize((112, 112)),
     transforms.ToTensor(),
-    # transforms.Normalize((0.3337, 0.3064, 0.3171), (0.2672, 0.2564, 0.2629))
+    transforms.Normalize((0.3337, 0.3064, 0.3171), (0.2672, 0.2564, 0.2629))
 ])
 
 # define the source of training and test data
@@ -45,16 +45,19 @@ test_loader = data.DataLoader(dataset=test_data, batch_size=batch_size, shuffle=
 # print the size of training sample
 print("train_size:", len(train_dataset))
 print("valid_size:", len(valid_dataset))
+# print thte size of training loader
+print("train loader length: ", len(train_loader))
+print("train loader dataset length: ", len(train_loader.dataset))
 # print the shape of training sample
 samples, labels = iter(train_loader).next()
 print(samples.shape, labels.shape)
 # print image grid of random training sample
-def imshow(img):
-    npimg = img.numpy()
-    plt.imshow(np.transpose(npimg, (1, 2, 0)))
-    plt.show()
-
-imshow(torchvision.utils.make_grid(samples))
+# def imshow(img):
+#     npimg = img.numpy()
+#     plt.imshow(np.transpose(npimg, (1, 2, 0)))
+#     plt.show()
+#
+# imshow(torchvision.utils.make_grid(samples))
 
 
 # define the CNN model
@@ -116,8 +119,8 @@ def train():
 
     model.train()
     for i, (images, labels) in enumerate(train_loader):
-        images.to(device)
-        labels.to(device)
+        images = images.to(device)
+        labels = labels.to(device)
 
         # forward pass
         outputs, hidden = model(images)
@@ -135,7 +138,7 @@ def train():
         # if (i + 1) % 2000 == 0:
         #     print(f'Epoch [{epoch + 1}/{epochs}], Step [{i + 1}/{len(train_loader)}], Loss: {loss.item():.4f}')
 
-    return epoch_loss / len(train_loader), epoch_acc / len(train_loader)
+    return epoch_loss / len(train_loader.dataset), epoch_acc / len(train_loader.dataset)
 
 
 # evaluate the model using validation set
@@ -146,8 +149,8 @@ def evaluate():
     model.eval()
     with torch.no_grad():
         for images, labels in valid_loader:
-            images.to(device)
-            labels.to(device)
+            images = images.to(device)
+            labels = labels.to(device)
 
             outputs, _ = model(images)
             _, predicted = torch.max(outputs.data, 1)
@@ -156,7 +159,7 @@ def evaluate():
             epoch_loss += loss.item()
             epoch_acc += (predicted == labels).sum().item()
 
-        return epoch_loss / len(valid_loader), epoch_acc / len(valid_loader)
+        return epoch_loss / len(valid_loader.dataset), epoch_acc / len(valid_loader.dataset)
 
 
 # perform training
@@ -180,13 +183,17 @@ for epoch in range(epochs):
     valid_losses[epoch] = valid_loss
     valid_accs[epoch] = valid_acc
 
-    print(f'Epoch [{epoch}] Train Loss: {train_loss:.4f} Train Acc: {train_acc:.4f} Train Time: {train_end_time - train_start_time:.2f}')
-    print(f'Epoch [{epoch}] Validation Loss: {train_loss:.4f} Validation Acc: {train_acc:.4f} Validation Time: {train_end_time - train_start_time:.2f}')
+    print(f'Epoch [{epoch}] Train Loss: {train_loss:.4f} Train Acc: {100.0 * train_acc:.4f} Train Time: {train_end_time - train_start_time:.2f}')
+    print(f'Epoch [{epoch}] Validation Loss: {valid_loss:.4f} Validation Acc: {100.0 * valid_acc:.4f} Validation Time: {valid_end_time - valid_start_time:.2f}')
 
 print('Finished Training')
-torch.save(model.state_dict(), './model/cnn_model.pth')
+try:
+    torch.save(model.state_dict(), '../model/cnn_model_gtsrb.pth')
+except Exception as e:
+    print('Exception: ', e)
 
 # evaluate model using test set
+# roughly 94.7981% accuracy
 with torch.no_grad():
     model.eval()
     correct = 0
@@ -195,8 +202,8 @@ with torch.no_grad():
     class_total = [0] * output_dim
 
     for images, labels in test_loader:
-        images.to(device)
-        labels.to(device)
+        images = images.to(device)
+        labels = labels.to(device)
 
         outputs, _ = model(images)
         _, predicted = torch.max(outputs.data, 1)
@@ -207,8 +214,8 @@ with torch.no_grad():
             label = labels[i]
             pred = predicted[i]
             if label == pred:
-                class_correct += 1
-            class_total += 1
+                class_correct[label] += 1
+            class_total[label] += 1
 
     acc = 100.0 * correct / total
     print(f'Accuracy of the network: {acc} %')
