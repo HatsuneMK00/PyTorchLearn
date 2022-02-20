@@ -1,13 +1,17 @@
 # -*- coding: utf-8 -*-
 # created by makise, 2022/2/20
-
+import numpy as np
 import torch
+import torchvision
+from matplotlib import pyplot as plt
 from torchvision import transforms
 
 from cnn_model_1 import AlexnetTSR
 from cnn_model_1 import OUTPUT_DIM
 from gtsrb_dataset import GTSRB
 from torch.utils.data import DataLoader
+
+from transformer import OcclusionTransform, MulOcclusionTransform
 
 
 # load the model from file
@@ -22,8 +26,9 @@ batch_size = 64
 # define customized data_transform
 data_transform = transforms.Compose([
     transforms.Resize((112, 112)),
+    OcclusionTransform(occlusion_height=30, occlusion_width=30),
     transforms.ToTensor(),
-    transforms.Normalize((0.3337, 0.3064, 0.3171), (0.2672, 0.2564, 0.2629))
+    # transforms.Normalize((0.3337, 0.3064, 0.3171), (0.2672, 0.2564, 0.2629))
 ])
 
 # define the test dataset
@@ -31,6 +36,15 @@ test_data = GTSRB(root_dir='../data', train=False, transform=data_transform)
 
 # define the test dataloader
 test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=False)
+
+# show some samples in test dataset
+samples, labels = iter(test_loader).next()
+print(samples.shape)
+def imshow(img):
+    npimg = img.numpy()
+    plt.imshow(np.transpose(npimg, (1, 2, 0)))
+    plt.show()
+imshow(torchvision.utils.make_grid(samples))
 
 # evaluate the loaded model
 with torch.no_grad():
@@ -62,7 +76,3 @@ with torch.no_grad():
     for i in range(output_dim):
         acc = 100.0 * class_correct[i] / class_total[i]
         print(f'Accuracy of {i} class: {acc} %')
-
-
-
-
