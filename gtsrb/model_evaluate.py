@@ -23,9 +23,10 @@ def imshow_and_save(img, save_name):
     # unnormalize the image, it's working, and the warning can be ignored
     npimg = npimg * np.array((0.2672, 0.2564, 0.2629)) + np.array((0.3337, 0.3064, 0.3171))
     plt.imshow(npimg)
-    plt.show()
     # save the image to experiment/occlusion_effect folder concatenate the image name with the save_path
     plt.savefig(f'../experiment/occlusion_effect/{save_name}.png')
+    plt.show()
+
 
 
 # load the model from file
@@ -172,7 +173,7 @@ for key in data_transforms:
 # save the results into a csv file
 with open('../experiment/occlusion_effect/results.csv', 'w') as csvfile:
     fieldnames = ['occlusion_height', 'occlusion_width', 'occlusion_num', 'image_height', 'image_width', 'accuracy',
-                  'accuracy_change_rate'
+                  'accuracy_change_rate',
                   'class_accuracy_0', 'class_accuracy_1', 'class_accuracy_2', 'class_accuracy_3', 'class_accuracy_4',
                   'class_accuracy_5', 'class_accuracy_6', 'class_accuracy_7', 'class_accuracy_8', 'class_accuracy_9',
                   'class_accuracy_10', 'class_accuracy_11', 'class_accuracy_12', 'class_accuracy_13',
