@@ -92,23 +92,24 @@ data_transform_occlusion_20_20_3 = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize((0.3337, 0.3064, 0.3171), (0.2672, 0.2564, 0.2629))
 ])
-data_transforms = [
-    data_transform_occlusion_0_0_0,
-    data_transform_occlusion_30_30_1,
-    data_transform_occlusion_30_30_2,
-    data_transform_occlusion_10_10_1,
-    data_transform_occlusion_10_10_2,
-    data_transform_occlusion_10_10_3,
-    data_transform_occlusion_20_20_1,
-    data_transform_occlusion_20_20_2,
-    data_transform_occlusion_20_20_3
-]
+data_transforms = {
+    'occlusion_0_0_0': data_transform_occlusion_0_0_0,
+    'occlusion_30_30_1': data_transform_occlusion_30_30_1,
+    'occlusion_30_30_2': data_transform_occlusion_30_30_2,
+    'occlusion_10_10_1': data_transform_occlusion_10_10_1,
+    'occlusion_10_10_2': data_transform_occlusion_10_10_2,
+    'occlusion_10_10_3': data_transform_occlusion_10_10_3,
+    'occlusion_20_20_1': data_transform_occlusion_20_20_1,
+    'occlusion_20_20_2': data_transform_occlusion_20_20_2,
+    'occlusion_20_20_3': data_transform_occlusion_20_20_3
+}
 
 results = []
 # iterate over the data_transforms
-for data_transform in data_transforms:
+for key in data_transforms:
+    data_transform = data_transforms[key]
     # print some log information
-    print("current data transform: ", data_transform)
+    print("current data transform: ", key)
 
     # define the test dataset
     test_data = GTSRB(root_dir='../data', train=False, transform=data_transform)
@@ -120,14 +121,14 @@ for data_transform in data_transforms:
     samples, labels = iter(test_loader).next()
     print(samples.shape)
     # use the data_transform name as the save_path
-    imshow_and_save(torchvision.utils.make_grid(samples), data_transform.__name__)
+    imshow_and_save(torchvision.utils.make_grid(samples), key)
 
     # evaluate the loaded model
     with torch.no_grad():
         model.eval()
         result_dict = {}
         # extract last three terms from the data_transform name
-        occlusion_height, occlusion_width, occlusion_num = data_transform.__name__.split('_')[-3:]
+        occlusion_height, occlusion_width, occlusion_num = key.split('_')[-3:]
         occlusion_height, occlusion_width, occlusion_num = int(occlusion_height), int(occlusion_width), int(
             occlusion_num)
         result_dict['occlusion_height'] = occlusion_height
