@@ -114,7 +114,7 @@ def evaluate():
             images = images.to(device)
             labels = labels.to(device)
 
-            outputs, _ = model(images)
+            outputs = model(images)
             _, predicted = torch.max(outputs.data, 1)
             loss = criterion(outputs, labels)
 
@@ -150,12 +150,12 @@ for epoch in range(epochs):
 
 print('Finished Training')
 try:
-    torch.save(model.state_dict(), '../model/cnn_model_gtsrb.pth')
+    torch.save(model.state_dict(), '../model/cnn_model_gtsrb_small.pth')
 except Exception as e:
     print('Exception: ', e)
 
 # evaluate model using test set
-# roughly 94.7981% accuracy
+# roughly 91% accuracy
 with torch.no_grad():
     model.eval()
     correct = 0
@@ -167,17 +167,17 @@ with torch.no_grad():
         images = images.to(device)
         labels = labels.to(device)
 
-        outputs, _ = model(images)
+        outputs = model(images)
         _, predicted = torch.max(outputs.data, 1)
         total += labels.size(0)
         correct += (predicted == labels).sum().item()
 
         for i in range(batch_size):
-            label = labels[i]
-            pred = predicted[i]
-            if label == pred:
-                class_correct[label] += 1
-            class_total[label] += 1
+            # in the last batch, the batch size may be smaller than batch_size
+            if i < len(labels):
+                label = labels[i]
+                class_correct[label] += (predicted[i] == label).item()
+                class_total[label] += 1
 
     acc = 100.0 * correct / total
     print(f'Accuracy of the network: {acc} %')
