@@ -25,7 +25,7 @@ data_transform = transforms.Compose([
 ])
 
 # define the test data
-test_data = GTSRB(root_dir='data', train=False, transform=data_transform)
+test_data = GTSRB(root_dir='../data', train=False, transform=data_transform)
 # create data loader for evaluating
 test_loader = data.DataLoader(dataset=test_data, batch_size=64, shuffle=False)
 samples, labels = iter(test_loader).next()
