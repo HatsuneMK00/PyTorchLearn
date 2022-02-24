@@ -12,13 +12,14 @@ from PIL import Image
 class GTSRB(Dataset):
     base_folder = 'GTSRB'
 
-    def __init__(self, root_dir, train=False, transform=None):
+    def __init__(self, root_dir, train=False, transform=None, classes=None):
         """
         Args:
             train (bool): Load trainingset or test set.
             root_dir (string): Directory containing GTSRB folder.
             transform (callable, optional): Optional transform to be applied
                 on a sample.
+            classes (list, optional): List of classes to be loaded.
         """
         self.root_dir = root_dir
 
@@ -28,9 +29,17 @@ class GTSRB(Dataset):
         csv_file_path = os.path.join(
             root_dir, self.base_folder, self.sub_directory, self.csv_file_name)
 
-        self.csv_data = pd.read_csv(csv_file_path)
+        csv_data = pd.read_csv(csv_file_path)
+        # cut the dataframe to the classes we want to load
+        # get the second column of the csv file and check it against the classes
+        if classes is not None:
+            csv_data = csv_data[csv_data.iloc[:, 1].isin(classes)]
+
+        self.csv_data = csv_data
 
         self.transform = transform
+
+        self.classes = classes
 
     def __len__(self):
         return len(self.csv_data)

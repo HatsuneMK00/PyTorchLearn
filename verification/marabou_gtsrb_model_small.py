@@ -27,7 +27,7 @@ data_transform = transforms.Compose([
 ])
 
 # define the test data
-test_data = GTSRB(root_dir='../data', train=False, transform=data_transform)
+test_data = GTSRB(root_dir='../data', train=False, transform=data_transform, classes=range(0, 7))
 # create data loader for evaluating
 test_loader = data.DataLoader(dataset=test_data, batch_size=64, shuffle=False)
 samples, labels = iter(test_loader).next()
@@ -56,16 +56,27 @@ def evaluate_model(m: Marabou.MarabouNetwork, input_data, output_data):
     # evaluate the model
     # iterate over all the input data
     result = []
-    for i in range(len(input_data)):
-        marabou_output = m.evaluate(input_data[i])
-        print('current iteration: ', i)
-        if marabou_output is not None:
-            print("marabou_output size: ", marabou_output.shape)
-            if np.argmax(marabou_output[0]) == np.argmax(output_data[i]):
-                result.append(i)
 
-    acc = len(result) / len(input_data)
-    print("Accuracy evaluated by Marabou: ", acc)
+    #for i in range(len(input_data)):
+    #    marabou_output = m.evaluate(input_data[i])
+    #    print('current iteration: ', i)
+    #    if marabou_output is not None:
+    #        print("marabou_output size: ", marabou_output.shape)
+    #        if np.argmax(marabou_output[0]) == np.argmax(output_data[i]):
+    #            result.append(i)
+
+    # use the first input_data to test the evaluating of the model
+    test_input = input_data[0]
+    print(test_input.shape)
+    # create marabou options
+    options = Marabou.createOptions(verbosity = 0)
+    # evaluate the model with marabou using test_input and options
+    marabou_output = m.evaluate(test_input, options=options)
+    # print the output
+    print(marabou_output)
+
+    # acc = len(result) / len(input_data)
+    # print("Accuracy evaluated by Marabou: ", acc)
 
 
 if __name__ == '__main__':
