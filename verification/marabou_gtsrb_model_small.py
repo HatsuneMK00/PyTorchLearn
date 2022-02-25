@@ -57,6 +57,8 @@ def evaluate_model(m: Marabou.MarabouNetwork, input_data, output_data):
 
     # use the first input_data to test the evaluating of the model
     test_input = input_data[0]
+    # make test_input 1 * 3 * 32 * 32
+    test_input = test_input.reshape(1, 3, 32, 32)
     print(test_input.shape)
     # create marabou options
     options = Marabou.createOptions(verbosity = 0)
