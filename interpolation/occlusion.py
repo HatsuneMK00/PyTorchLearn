@@ -24,7 +24,7 @@ def regular_occlusion(img, box, occlusion_size, occlusion_color):
     """
     # convert PIL Image to numpy array
     img_np = np.array(img)
-    print(img_np.shape) # should be (height, width, 3)
+    print(img_np.shape)  # should be (height, width, 3)
     # get the height and width of the image
     height, width = img_np.shape[:2]
     # get the upper left corner of occlusion
@@ -55,8 +55,10 @@ def occlusion_with_interpolation(img, box, occlusion_size, occlusion_color):
     :param occlusion_color: A integer between 0 and 255 which is treated as the color of occlusion
     :return:        Image after applying occlusion
     """
-    # convert PIL Image to numpy array
-    img_np = np.array(img)
+    # convert PIL Image to float numpy array
+    img_np = np.array(img, dtype=np.float)
+    # copy the image
+    img_np_origin = img_np.copy()
     # get the height and width of the image
     height, width = img_np.shape[:2]
     # get the upper left corner of occlusion
@@ -81,41 +83,35 @@ def occlusion_with_interpolation(img, box, occlusion_size, occlusion_color):
             x1 = int(np.floor(j))
             y1 = int(np.floor(i))
             x2 = int(np.ceil(j))
-            y2 = int(np.floor(i))
+            y2 = int(np.ceil(i))
             # img_np has shape (height, width, 3)
             # get the four pixels' color
-            pixel_x1_y1 = img_np[x1, y1, :]
-            pixel_x1_y2 = img_np[x1, y2, :]
-            pixel_x2_y1 = img_np[x2, y1, :]
-            pixel_x2_y2 = img_np[x2, y2, :]
+            pixel_x1_y1 = img_np_origin[y1, x1, :]
+            pixel_x1_y2 = img_np_origin[y2, x1, :]
+            pixel_x2_y1 = img_np_origin[y1, x2, :]
+            pixel_x2_y2 = img_np_origin[y2, x2, :]
 
-            # calculate the interpolation on y-axis
-            # the four pixel value has shape (3,)
-            pixel_r1 = pixel_x1_y1 * (y2 - i) / (y2 - y1) + pixel_x1_y2 * (i - y1) / (y2 - y1)
-            pixel_r2 = pixel_x2_y1 * (y2 - i) / (y2 - y1) + pixel_x2_y2 * (i - y1) / (y2 - y1)
+            # calculate the coefficients of interpolation on four pixels
+            # by decompose the occlusion point color on x-axis and y-axis
+            coefficient_x1_y1 = ((x2 - j) / (x2 - x1)) * ((y2 - i) / (y2 - y1))
+            coefficient_x1_y2 = ((x2 - j) / (x2 - x1)) * ((i - y1) / (y2 - y1))
+            coefficient_x2_y1 = ((j - x1) / (x2 - x1)) * ((y2 - i) / (y2 - y1))
+            coefficient_x2_y2 = ((j - x1) / (x2 - x1)) * ((i - y1) / (y2 - y1))
 
-            # calculate the pixel value of r1 and r2 with effect of occlusion point
-            # pixel_r1 and pixel_r2 should have shape (3,)
-            pixel_r1_new = occlusion_color * (x2 - j) / (x2 - x1) + pixel_r1 * (j - x1) / (x2 - x1)
-            pixel_r2_new = pixel_r2 * (x2 - j) / (x2 - x1) + occlusion_color * (j - x1) / (x2 - x1)
-
-            # calculate the four pixels' new color after occlusion
-            pixel_x1_y1_new = pixel_x1_y1 * (y2 - i) / (y2 - y1) + pixel_r1_new * (i - y1) / (y2 - y1)
-            pixel_x1_y2_new = pixel_r1_new * (y2 - i) / (y2 - y1) + pixel_x1_y2 * (i - y1) / (y2 - y1)
-            pixel_x2_y1_new = pixel_x2_y1 * (y2 - i) / (y2 - y1) + pixel_r2_new * (i - y1) / (y2 - y1)
-            pixel_x2_y2_new = pixel_r2_new * (y2 - i) / (y2 - y1) + pixel_x2_y2 * (i - y1) / (y2 - y1)
-
-            # assign the new color to the four pixels
-            img_np[x1, y1] = pixel_x1_y1_new
-            img_np[x1, y2] = pixel_x1_y2_new
-            img_np[x2, y1] = pixel_x2_y1_new
-            img_np[x2, y2] = pixel_x2_y2_new
+            # calculate the color of four pixels after applying occlusion
+            img_np[y1, x1] = img_np[y1, x1] - coefficient_x1_y1 * (pixel_x1_y1 - occlusion_color)
+            img_np[y1, x2] = img_np[y1, x2] - coefficient_x2_y1 * (pixel_x2_y1 - occlusion_color)
+            img_np[y2, x1] = img_np[y2, x1] - coefficient_x1_y2 * (pixel_x1_y2 - occlusion_color)
+            img_np[y2, x2] = img_np[y2, x2] - coefficient_x2_y2 * (pixel_x2_y2 - occlusion_color)
 
             # move to the next occlusion point
             j += 1
         # move to the next occlusion point
         i += 1
+        j = x_in_img
 
     # convert numpy array back to PIL Image
+    # first convert img_np into uint8 type
+    img_np = np.clip(img_np, 0, 255).astype(np.uint8)
     img_np = Image.fromarray(img_np)
     return img_np

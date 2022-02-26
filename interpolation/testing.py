@@ -42,7 +42,7 @@ def regular_occlusion_test():
     assert np.array_equal(np.array(img), np.array(occlusion_image))
 
 
-def non_integer_occlusion_test():
+def non_integer_occlusion_interpolation_test():
     img = load_sample_image()
     occlusion_size = (10, 10)
     occlusion_image = occlusion_with_interpolation(img, (3.5, 3.5), occlusion_size, 0)
@@ -64,4 +64,4 @@ def non_integer_occlusion_test():
 
 if __name__ == '__main__':
     # regular_occlusion_test()
-    non_integer_occlusion_test()
+    non_integer_occlusion_interpolation_test()
