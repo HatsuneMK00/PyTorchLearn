@@ -17,7 +17,7 @@ from torchvision import transforms
 
 from gtsrb.gtsrb_dataset import GTSRB
 
-model_path = "../model/fnn_model_gtsrb_small.onnx"
+model_path = "../model/cnn_model_gtsrb_small.onnx"
 
 # define the same data transform as when the model is trained
 data_transform = transforms.Compose([
@@ -27,7 +27,7 @@ data_transform = transforms.Compose([
 ])
 
 # define the test data
-test_data = GTSRB(root_dir='../data', train=False, transform=data_transform, classes=range(0, 7))
+test_data = GTSRB(root_dir='../data', train=False, transform=data_transform)
 # create data loader for evaluating
 test_loader = data.DataLoader(dataset=test_data, batch_size=64, shuffle=False)
 samples, labels = iter(test_loader).next()
@@ -57,26 +57,29 @@ def evaluate_model(m: Marabou.MarabouNetwork, input_data, output_data):
     # iterate over all the input data
     result = []
 
-    #for i in range(len(input_data)):
-    #    marabou_output = m.evaluate(input_data[i])
-    #    print('current iteration: ', i)
-    #    if marabou_output is not None:
-    #        print("marabou_output size: ", marabou_output.shape)
-    #        if np.argmax(marabou_output[0]) == np.argmax(output_data[i]):
-    #            result.append(i)
+    for i in range(len(input_data)):
+        marabou_input = input_data[i].reshape(1, 3, 32, 32)
+        marabou_input = marabou_input.numpy()
+        marabou_output = m.evaluate(marabou_input)
+        print('current iteration: ', i)
+        if marabou_output is not None:
+            if np.argmax(marabou_output[0]) == output_data[i]:
+                result.append(i)
 
     # use the first input_data to test the evaluating of the model
-    test_input = input_data[0]
-    print(test_input.shape)
+    #test_input = input_data[0]
+    # make test_input 1*3*32*32
+    #test_input = test_input.reshape(1, 3, 32, 32)
+    #print(test_input.shape)
     # create marabou options
-    options = Marabou.createOptions(verbosity = 0)
+    #options = Marabou.createOptions(verbosity = 4)
     # evaluate the model with marabou using test_input and options
-    marabou_output = m.evaluate(test_input, options=options)
+    #marabou_output = m.evaluate(test_input.numpy(), useMarabou=False, options=options)
     # print the output
-    print(marabou_output)
+    #print(marabou_output)
 
-    # acc = len(result) / len(input_data)
-    # print("Accuracy evaluated by Marabou: ", acc)
+    acc = len(result) / len(input_data)
+    print("Accuracy evaluated by Marabou: ", acc)
 
 
 if __name__ == '__main__':
