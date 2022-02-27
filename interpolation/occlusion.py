@@ -46,7 +46,6 @@ def regular_occlusion(img, box, occlusion_size, occlusion_color):
 
 # occlusion with interpolation
 # the occlusion has non-integer upper left corner and integer height and width
-# or the occlusion has integer upper left corner and non-integer height and width
 def occlusion_with_interpolation(img, box, occlusion_size, occlusion_color):
     """
     :param img:     PIL Image
