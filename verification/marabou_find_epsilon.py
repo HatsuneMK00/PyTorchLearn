@@ -52,7 +52,7 @@ def find_epsilon(network:MarabouNetwork, image:np.array, label:int, epsilon:floa
 if __name__ == '__main__':
     # load one image from training set using PIL and convert it to np array
     image = Image.open("../data/GTSRB/trainingset/00000/00000_00000.ppm")
-     = np.array(image)
+    np_img = np.array(image)
     print("np_img shape: ", np_img.shape)
 
     # load the network
