@@ -6,7 +6,7 @@ Use Marabou to conduct formal verification on a small CNN model on GTSRB dataset
 """
 
 # use Marabou to read onnx format model
-from maraboupy import Marabou
+from maraboupy import Marabou, MarabouNetwork
 import numpy as np
 
 # load onnx model
@@ -14,6 +14,7 @@ from torch.utils import data
 from torchvision import transforms
 
 from gtsrb.gtsrb_dataset import GTSRB
+from marabou_utils import load_network
 
 model_path = "../models/gtsrb/gtsrb_model_small.onnx"
 
@@ -31,19 +32,9 @@ test_loader = data.DataLoader(dataset=test_data, batch_size=64, shuffle=False)
 samples, labels = iter(test_loader).next()
 print(samples.shape, labels.shape)
 
-def load_model(model_path) -> Marabou.MarabouNetwork:
-    """
-    load onnx model
-    :param model_path: path of onnx model
-    :return:
-    """
-    # load onnx model
-    m = Marabou.read_onnx(model_path)
-    return m
-
 
 # use marabou's evaluate method to evaluate the model
-def evaluate_model(m: Marabou.MarabouNetwork, input_data, output_data):
+def evaluate_model(m: MarabouNetwork, input_data, output_data):
     """
     evaluate the model
     :param m: marabou network
@@ -79,7 +70,7 @@ def evaluate_model(m: Marabou.MarabouNetwork, input_data, output_data):
 
 if __name__ == '__main__':
     # load onnx model
-    m = load_model(model_path)
+    m = load_network(model_path)
 
     # evaluate the model
     input_data, output_data = samples, labels
