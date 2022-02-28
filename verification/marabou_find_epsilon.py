@@ -22,8 +22,10 @@ def find_epsilon(network:MarabouNetwork, image:np.array, label:int, epsilon:floa
     :return: the epsilon founded for this network
     """
     n_inputs = network.inputVars[0].flatten().shape[0]
+    inputs_flattened = network.inputVars[0].flatten()
     print("input_shape", network.inputVars[0].flatten().shape)
     n_outputs = network.outputVars[0].flatten().shape[0]
+    outputs_flattened = network.outputVars[0].flatten()
     print("output_shape", network.outputVars[0].flatten().shape)
     flattened_image = image.flatten()
 
@@ -38,13 +40,13 @@ def find_epsilon(network:MarabouNetwork, image:np.array, label:int, epsilon:floa
     # iterate through the inputs and set some equalities
     for i in range(n_inputs):
         val = flattened_image[i]
-        network.addInequality([i, val, eps], [1, -1, -1], 0)
-        network.addInequality([i, val, eps], [-1, 1, -1], 0)
+        network.setLowerBound(inputs_flattened[i], val - epsilon)
+        network.setUpperBound(inputs_flattened[i], val + epsilon)
 
     # iterate through the outputs and set some equalities
     for i in range(n_outputs):
         if i != label:
-            network.addEquality([network.outputVars[0][i], network.outputVars[0][label]], [1, -1], 0)
+            network.setLowerBound(outputs_flattened[i], outputs_flattened[label])
 
     vals = network.solve(verbose=1)
     print("vals: ", vals)
