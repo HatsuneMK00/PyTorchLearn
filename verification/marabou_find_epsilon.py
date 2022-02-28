@@ -4,7 +4,8 @@
 # This script is used to find the epsilon value with the Marabou solver.
 # It's an attempt to find the epsilon value for the given network and how to use Marabou framework.
 
-
+import onnx
+import onnxruntime
 from maraboupy import Marabou, MarabouNetwork
 import numpy as np
 from PIL import Image
@@ -37,28 +38,32 @@ def find_epsilon(network:MarabouNetwork, image:np.array, label:int, epsilon:floa
     # iterate through the inputs and set some equalities
     for i in range(n_inputs):
         val = flattened_image[i]
-        network.addEquality([i, eps], [1, val - 1], val)
+        network.addInequality([i, val, eps], [1, -1, -1], 0)
+        network.addInequality([i, val, eps], [-1, 1, -1], 0)
 
     # iterate through the outputs and set some equalities
     for i in range(n_outputs):
         if i != label:
             network.addEquality([network.outputVars[0][i], network.outputVars[0][label]], [1, -1], 0)
 
-    vals, stats = network.solve(verbose=1)
+    vals = network.solve(verbose=1)
     print("vals: ", vals)
-    print("stats: ", stats)
 
 
 if __name__ == '__main__':
     # load one image from training set using PIL and convert it to np array
     image = Image.open("../data/GTSRB/trainingset/00000/00000_00000.ppm")
+    # resize the image to (32, 32), if it's less than 32, pad it with black pixels
+    image = image.resize((32, 32), Image.ANTIALIAS)
     np_img = np.array(image)
+    np_img = np.transpose(np_img, (2, 0, 1))
+    np_img = np.reshape(np_img, (1, 3, 32, 32))
     print("np_img shape: ", np_img.shape)
 
     # load the network
     network = load_network('../model/fnn_model_gtsrb_small.onnx')
     label = 0
-    epsilon = 0.5
+    epsilon = 1000
 
     # conduct the find_epsilon function
     find_epsilon(network, np_img, label, epsilon)
