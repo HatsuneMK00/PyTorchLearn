@@ -29,13 +29,17 @@ def find_epsilon(network:MarabouNetwork, image:np.array, label:int, epsilon:floa
     print("output_shape", network.outputVars[0].flatten().shape)
     flattened_image = image.flatten()
 
+    print(inputs_flattened[0:100])
+    print(outputs_flattened[0:100])
+
     # get a marabou variable
-    eps = network.getNewVariable()
+    #eps = network.getNewVariable()
     # set the upper bound and lower bound for this variable eps
-    network.setLowerBound(eps, 0)
-    network.setUpperBound(eps, epsilon)
-    # set the eps as network inputVars
-    network.inputVars = np.array([eps])
+    #network.setLowerBound(eps, 0)
+    #network.setUpperBound(eps, epsilon)
+    # add the eps to network inputVars
+    #network.inputVars = np.array([eps])
+    print(network.inputVars[0].shape)
 
     # iterate through the inputs and set some equalities
     for i in range(n_inputs):
@@ -46,7 +50,7 @@ def find_epsilon(network:MarabouNetwork, image:np.array, label:int, epsilon:floa
     # iterate through the outputs and set some equalities
     for i in range(n_outputs):
         if i != label:
-            network.setLowerBound(outputs_flattened[i], outputs_flattened[label])
+            network.setUpperBound(outputs_flattened[i], outputs_flattened[label])
 
     vals = network.solve(verbose=1)
     print("vals: ", vals)
@@ -65,7 +69,7 @@ if __name__ == '__main__':
     # load the network
     network = load_network('../model/fnn_model_gtsrb_small.onnx')
     label = 0
-    epsilon = 1000
+    epsilon = 0.5
 
     # conduct the find_epsilon function
     find_epsilon(network, np_img, label, epsilon)
