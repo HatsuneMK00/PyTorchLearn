@@ -111,12 +111,15 @@ def verify_with_marabou(network:MarabouNetwork, image:np.array, label:int, box, 
 # test with some fixed upper and lower bounds
 def verify_with_marabou_test(network:MarabouNetwork, image:np.array, label:int, box, occlusion_size=(1, 1), epsilon = 0.5):
     inputs = network.inputVars[0][0]  # the first dimension is batch size which is 1
+    n_inputs = inputs.flatten().shape[0]
+    inputs_flattened = inputs.flatten()
     print("input_shape:", inputs.shape)
     outputs = network.outputVars[0]
     n_outputs = outputs.flatten().shape[0]
     outputs_flattened = outputs.flatten()
     print("output_shape:", outputs.shape)
     image = image[0]
+    image_flattened = image.flatten()
 
     # unpack inputs size (channel, height, width)
     c, h, w = inputs.shape
@@ -127,6 +130,12 @@ def verify_with_marabou_test(network:MarabouNetwork, image:np.array, label:int, 
     y = int(h / 2)
     # assert image has the same size with inputs
     assert image.shape == (c, h, w)
+
+    # set all inputs as image value
+    for i in range(n_inputs):
+        val = image_flattened[i]
+        network.setLowerBound(inputs_flattened[i], val)
+        network.setUpperBound(inputs_flattened[i], val)
 
     # set the upper bound and lower bound for the pixels on the occlusion area for every channel
     for c in range(c):
