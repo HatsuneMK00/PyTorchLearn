@@ -10,7 +10,7 @@ from maraboupy import Marabou, MarabouNetwork
 import numpy as np
 from PIL import Image
 
-from marabou_utils import load_network
+from marabou_utils import load_network, load_sample_image
 
 
 def find_epsilon(network:MarabouNetwork, image:np.array, label:int, epsilon:float):
@@ -57,14 +57,8 @@ def find_epsilon(network:MarabouNetwork, image:np.array, label:int, epsilon:floa
 
 
 if __name__ == '__main__':
-    # load one image from training set using PIL and convert it to np array
-    image = Image.open("../data/GTSRB/trainingset/00000/00000_00000.ppm")
-    # resize the image to (32, 32), if it's less than 32, pad it with black pixels
-    image = image.resize((32, 32), Image.ANTIALIAS)
-    np_img = np.array(image)
-    np_img = np.transpose(np_img, (2, 0, 1))
-    np_img = np.reshape(np_img, (1, 3, 32, 32))
-    print("np_img shape: ", np_img.shape)
+    # load the sample image
+    np_img = load_sample_image()
 
     # load the network
     network = load_network('../model/fnn_model_gtsrb_small.onnx')
