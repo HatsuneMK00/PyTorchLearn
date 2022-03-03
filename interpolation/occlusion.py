@@ -119,12 +119,22 @@ def occlusion_with_interpolation(img, box, occlusion_size, occlusion_color):
             coefficient_x2_y1 = coefficient_x2 * coefficient_y1
             coefficient_x2_y2 = coefficient_x2 * coefficient_y2
 
-            # calculate the color of four pixels after applying occlusion
-            img_np[y1, x1] = img_np[y1, x1] - coefficient_x1_y1 * (pixel_x1_y1 - occlusion_color)
-            img_np[y1, x2] = img_np[y1, x2] - coefficient_x2_y1 * (pixel_x2_y1 - occlusion_color)
-            img_np[y2, x1] = img_np[y2, x1] - coefficient_x1_y2 * (pixel_x1_y2 - occlusion_color)
-            img_np[y2, x2] = img_np[y2, x2] - coefficient_x2_y2 * (pixel_x2_y2 - occlusion_color)
-
+            # if x1 != x2 and y1 != y2, assign both four points
+            if x1 != x2 and y1 != y2:
+                img_np[y1, x1] = img_np[y1, x1] - coefficient_x1_y1 * (pixel_x1_y1 - occlusion_color)
+                img_np[y1, x2] = img_np[y1, x2] - coefficient_x2_y1 * (pixel_x2_y1 - occlusion_color)
+                img_np[y2, x1] = img_np[y2, x1] - coefficient_x1_y2 * (pixel_x1_y2 - occlusion_color)
+                img_np[y2, x2] = img_np[y2, x2] - coefficient_x2_y2 * (pixel_x2_y2 - occlusion_color)
+            elif x1 == x2 and y1 == y2:
+                img_np[y1, x1] = img_np[y1, x1] - coefficient_x1_y1 * (pixel_x1_y1 - occlusion_color)
+            # if x1 == x2, only assign (y1, x1) and (y2, x1)
+            elif x1 == x2:
+                img_np[y1, x1] = img_np[y1, x1] - coefficient_x1_y1 * (pixel_x1_y1 - occlusion_color)
+                img_np[y2, x1] = img_np[y2, x1] - coefficient_x2_y1 * (pixel_x2_y1 - occlusion_color)
+            # else if y1 == y2, only assign (y1, x1) and (y1, x2)
+            elif y1 == y2:
+                img_np[y1, x1] = img_np[y1, x1] - coefficient_x1_y1 * (pixel_x1_y1 - occlusion_color)
+                img_np[y1, x2] = img_np[y1, x2] - coefficient_x2_y1 * (pixel_x2_y1 - occlusion_color)
             # move to the next occlusion point
             j += 1
         # move to the next occlusion point
