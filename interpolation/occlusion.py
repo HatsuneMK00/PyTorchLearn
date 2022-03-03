@@ -108,10 +108,16 @@ def occlusion_with_interpolation(img, box, occlusion_size, occlusion_color):
 
             # calculate the coefficients of interpolation on four pixels
             # by decompose the occlusion point color on x-axis and y-axis
-            coefficient_x1_y1 = ((x2 - j) / (x2 - x1)) * ((y2 - i) / (y2 - y1))
-            coefficient_x1_y2 = ((x2 - j) / (x2 - x1)) * ((i - y1) / (y2 - y1))
-            coefficient_x2_y1 = ((j - x1) / (x2 - x1)) * ((y2 - i) / (y2 - y1))
-            coefficient_x2_y2 = ((j - x1) / (x2 - x1)) * ((i - y1) / (y2 - y1))
+            # if x1 == x2, then the coefficient of x-axis is 1
+            # if y1 == y2, then the coefficient of y-axis is 1
+            coefficient_x1 = 1 if x1 == x2 else (x2 - j) / (x2 - x1)
+            coefficient_y1 = 1 if y1 == y2 else (y2 - i) / (y2 - y1)
+            coefficient_x2 = 1 if x1 == x2 else (j - x1) / (x2 - x1)
+            coefficient_y2 = 1 if y1 == y2 else (i - y1) / (y2 - y1)
+            coefficient_x1_y1 = coefficient_x1 * coefficient_y1
+            coefficient_x1_y2 = coefficient_x1 * coefficient_y2
+            coefficient_x2_y1 = coefficient_x2 * coefficient_y1
+            coefficient_x2_y2 = coefficient_x2 * coefficient_y2
 
             # calculate the color of four pixels after applying occlusion
             img_np[y1, x1] = img_np[y1, x1] - coefficient_x1_y1 * (pixel_x1_y1 - occlusion_color)
