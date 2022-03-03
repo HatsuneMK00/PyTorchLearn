@@ -80,8 +80,8 @@ def verify_with_marabou(network: MarabouNetwork, image: np.array, label: int, bo
     left_lower_affected = (np.floor(left_lower_occ[0]), np.ceil(left_lower_occ[1]))
     right_upper_affected = (np.ceil(right_upper_occ[0]), np.floor(right_upper_occ[1]))
     right_lower_affected = (np.ceil(right_lower_occ[0]), np.ceil(right_lower_occ[1]))
-    height_affected = left_lower_affected[1] - left_upper_affected[1] + 1
-    width_affected = right_upper_affected[0] - left_upper_affected[0] + 1
+    height_affected = left_lower_affected[1] - left_upper_affected[1]
+    width_affected = right_upper_affected[0] - left_upper_affected[0]
 
     # todo assert the affected area is larger than occlusion area by at most 1
 

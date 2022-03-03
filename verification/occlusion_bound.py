@@ -31,8 +31,6 @@ def calculate_entire_bounds(image, left_upper_occ, occlusion_size, occlusion_col
     # has same size as the image but without last dimension
     changed = np.zeros(image.shape[:-1])
 
-    height_affected, width_affected = affected_size
-
     # --------------------------------------------------
     # iterate through optimal-possible occlusion point on the edge of occlusion area
     # --------------------------------------------------
@@ -42,13 +40,13 @@ def calculate_entire_bounds(image, left_upper_occ, occlusion_size, occlusion_col
         # update the upper_bounds, lower_bounds and changed according to the current occlusion point,
         # occlusion size and affected area
         update_bounds(image, current_left_upper_occ, occlusion_size, occlusion_color, left_upper_affected,
-                      (height_affected, width_affected), upper_bounds, lower_bounds, changed)
+                      affected_size, upper_bounds, lower_bounds, changed)
         # next occlusion point
         current_left_upper_occ = (np.floor(current_left_upper_occ[0] + 1), current_left_upper_occ[1])
     # complement the last right upper occlusion point
     current_left_upper_occ = (left_upper_occ[0] + 2 * epsilon, current_left_upper_occ[1])
     update_bounds(image, current_left_upper_occ, occlusion_size, occlusion_color, left_upper_affected,
-                  (height_affected, width_affected), upper_bounds, lower_bounds, changed)
+                  affected_size, upper_bounds, lower_bounds, changed)
 
     # iterate through the lower parallel edge of possible occlusion area
     current_left_upper_occ = (left_upper_occ[0], left_upper_occ[1] + 2 * epsilon)
@@ -56,13 +54,13 @@ def calculate_entire_bounds(image, left_upper_occ, occlusion_size, occlusion_col
         # update the upper_bounds, lower_bounds and changed according to the current occlusion point,
         # occlusion size and affected area
         update_bounds(image, current_left_upper_occ, occlusion_size, occlusion_color, left_upper_affected,
-                      (height_affected, width_affected), upper_bounds, lower_bounds, changed)
+                      affected_size, upper_bounds, lower_bounds, changed)
         # next occlusion point
         current_left_upper_occ = (np.floor(current_left_upper_occ[0] + 1), current_left_upper_occ[1])
     # complement the last right lower occlusion point
     current_left_upper_occ = (left_upper_occ[0] + 2 * epsilon, current_left_upper_occ[1])
     update_bounds(image, current_left_upper_occ, occlusion_size, occlusion_color, left_upper_affected,
-                  (height_affected, width_affected), upper_bounds, lower_bounds, changed)
+                  affected_size, upper_bounds, lower_bounds, changed)
 
     # iterate through the left vertical edge of possible occlusion area
     current_left_upper_occ = left_upper_occ
@@ -70,13 +68,13 @@ def calculate_entire_bounds(image, left_upper_occ, occlusion_size, occlusion_col
         # update the upper_bounds, lower_bounds and changed according to the current occlusion point,
         # occlusion size and affected area
         update_bounds(image, current_left_upper_occ, occlusion_size, occlusion_color, left_upper_affected,
-                      (height_affected, width_affected), upper_bounds, lower_bounds, changed)
+                      affected_size, upper_bounds, lower_bounds, changed)
         # next occlusion point
         current_left_upper_occ = (current_left_upper_occ[0], np.floor(current_left_upper_occ[1] + 1))
     # complement the last left upper occlusion point
     current_left_upper_occ = (current_left_upper_occ[0], left_upper_occ[1] + 2 * epsilon)
     update_bounds(image, current_left_upper_occ, occlusion_size, occlusion_color, left_upper_affected,
-                  (height_affected, width_affected), upper_bounds, lower_bounds, changed)
+                  affected_size, upper_bounds, lower_bounds, changed)
 
     # iterate through the right vertical edge of possible occlusion area
     current_left_upper_occ = (left_upper_occ[0] + 2 * epsilon, left_upper_occ[1])
@@ -84,13 +82,13 @@ def calculate_entire_bounds(image, left_upper_occ, occlusion_size, occlusion_col
         # update the upper_bounds, lower_bounds and changed according to the current occlusion point,
         # occlusion size and affected area
         update_bounds(image, current_left_upper_occ, occlusion_size, occlusion_color, left_upper_affected,
-                      (height_affected, width_affected), upper_bounds, lower_bounds, changed)
+                      affected_size, upper_bounds, lower_bounds, changed)
         # next occlusion point
         current_left_upper_occ = (current_left_upper_occ[0], np.floor(current_left_upper_occ[1] + 1))
     # complement the last left lower occlusion point
     current_left_upper_occ = (current_left_upper_occ[0], left_upper_occ[1] + 2 * epsilon)
     update_bounds(image, current_left_upper_occ, occlusion_size, occlusion_color, left_upper_affected,
-                  (height_affected, width_affected), upper_bounds, lower_bounds, changed)
+                  affected_size, upper_bounds, lower_bounds, changed)
 
     # iterate through points covered by the occlusion area and set the lower_bounds to occlusion color
     for i in range(int(np.ceil(left_upper_occ[0])), occlusion_size[0] + 1):
@@ -122,8 +120,8 @@ def update_bounds(image, left_upper_occ, occlusion_size, occlusion_color, left_u
     img_np = occlusion(image, left_upper_occ, occlusion_size, occlusion_color)
     h, w, c = img_np.shape
     # iterate through the affected area to update the upper_bounds and lower_bounds
-    for i in range(left_upper_affected[0], left_upper_affected[0] + affected_size[0]):
-        for j in range(left_upper_affected[1], left_upper_affected[1] + affected_size[1]):
+    for i in range(left_upper_affected[0], left_upper_affected[0] + affected_size[0] + 1):
+        for j in range(left_upper_affected[1], left_upper_affected[1] + affected_size[1] + 1):
             # get the color of the pixel
             pixel = img_np[i, j]
             if not changed[i, j]:
