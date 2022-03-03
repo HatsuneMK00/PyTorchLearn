@@ -11,6 +11,7 @@ from PIL import Image
 import numpy as np
 
 from marabou_utils import load_network, load_sample_image
+from occlusion_bound import calculate_entire_bounds
 
 
 # verify with marabou
@@ -79,81 +80,14 @@ def verify_with_marabou(network: MarabouNetwork, image: np.array, label: int, bo
     left_lower_affected = (np.floor(left_lower_occ[0]), np.ceil(left_lower_occ[1]))
     right_upper_affected = (np.ceil(right_upper_occ[0]), np.floor(right_upper_occ[1]))
     right_lower_affected = (np.ceil(right_lower_occ[0]), np.ceil(right_lower_occ[1]))
-    height_affected = left_lower_affected[1] - left_upper_affected[1]
-    width_affected = right_upper_affected[0] - left_upper_affected[0]
+    height_affected = left_lower_affected[1] - left_upper_affected[1] + 1
+    width_affected = right_upper_affected[0] - left_upper_affected[0] + 1
 
     # todo assert the affected area is larger than occlusion area by at most 1
 
-    # --------------------------------------------------
-    # for every optimal-possible occlusion point on the edge of occlusion area
-    # calculate the pixel value in the affected area
-    # --------------------------------------------------
-    # first create variables for recording the upper and lower bounds for each pixel
-    # record the upper bound for pixels that are affected by the occlusion area to find the minimum
-    # and the lower bound for pixels that are affected by the occlusion area to find the maximum
-    # the upper bound and lower bound has same size as the image
-    upper_bounds = np.zeros(image.shape)
-    lower_bounds = np.zeros(image.shape)
-    # record whether the upper bound and lower bound is changed for each pixel
-    # has same size as the image but without last dimension
-    changed = np.zeros(image.shape[:-1])
-
-    # --------------------------------------------------
-    # iterate through optimal-possible occlusion point on the edge of occlusion area
-    # --------------------------------------------------
-    # iterate through the upper parallel edge of possible occlusion area
-    current_left_upper_occ = left_upper_occ
-    while current_left_upper_occ[0] < left_upper_occ[0] + 2 * epsilon:
-        # update the upper_bounds, lower_bounds and changed according to the current occlusion point,
-        # occlusion size and affected area
-        calculate_bounds(image, current_left_upper_occ, occlusion_size, occlusion_color, left_upper_affected,
-                         (height_affected, width_affected), upper_bounds, lower_bounds, changed)
-        # next occlusion point
-        current_left_upper_occ = (np.floor(current_left_upper_occ[0] + 1), current_left_upper_occ[1])
-    # complement the last right upper occlusion point
-    current_left_upper_occ = (left_upper_occ[0] + 2 * epsilon, current_left_upper_occ[1])
-    calculate_bounds(image, current_left_upper_occ, occlusion_size, occlusion_color, left_upper_affected,
-                     (height_affected, width_affected), upper_bounds, lower_bounds, changed)
-
-    # iterate through the lower parallel edge of possible occlusion area
-    current_left_upper_occ = left_upper_occ + (0, 2 * epsilon)
-    while current_left_upper_occ[0] < left_lower_occ[0] + 2 * epsilon:
-        # update the upper_bounds, lower_bounds and changed according to the current occlusion point,
-        # occlusion size and affected area
-        calculate_bounds(image, current_left_upper_occ, occlusion_size, occlusion_color, left_lower_affected,
-                         (height_affected, width_affected), upper_bounds, lower_bounds, changed)
-        # next occlusion point
-        current_left_lower_occ = (np.floor(current_left_upper_occ[0] + 1), current_left_upper_occ[1])
-    # complement the last right lower occlusion point
-    current_left_upper_occ = (left_upper_occ[0] + 2 * epsilon, current_left_upper_occ[1])
-    calculate_bounds(image, current_left_upper_occ, occlusion_size, occlusion_color, left_lower_affected,
-                     (height_affected, width_affected), upper_bounds, lower_bounds, changed)
-
-    # iterate through the left vertical edge of possible occlusion area
-    current_left_upper_occ = left_upper_occ
-    while current_left_upper_occ[1] < left_upper_occ[1] + 2 * epsilon:
-        # update the upper_bounds, lower_bounds and changed according to the current occlusion point,
-        # occlusion size and affected area
-        calculate_bounds(image, current_left_upper_occ, occlusion_size, occlusion_color, left_upper_affected,
-                         (height_affected, width_affected), upper_bounds, lower_bounds, changed)
-        # next occlusion point
-        current_left_upper_occ = (current_left_upper_occ[0], np.floor(current_left_upper_occ[1] + 1))
-    # complement the last left upper occlusion point
-    current_left_upper_occ = (current_left_upper_occ[0], left_upper_occ[1] + 2 * epsilon)
-    calculate_bounds(image, current_left_upper_occ, occlusion_size, occlusion_color, left_upper_affected,
-                     (height_affected, width_affected), upper_bounds, lower_bounds, changed)
-
-    # iterate through the right vertical edge of possible occlusion area
-    current_left_upper_occ = left_upper_occ + (2 * epsilon, 0)
-    while current_left_upper_occ[1] < left_lower_occ[1] + 2 * epsilon:
-        # update the upper_bounds, lower_bounds and changed according to the current occlusion point,
-        # occlusion size and affected area
-        calculate_bounds(image, current_left_upper_occ, occlusion_size, occlusion_color, left_lower_affected,
-                         (height_affected, width_affected), upper_bounds, lower_bounds, changed)
-        # next occlusion point
-        current_left_upper_occ = (current_left_upper_occ[0], np.floor(current_left_upper_occ[1] + 1))
-    # complement the last left lower occlusion point
-    current_left_upper_occ = (current_left_upper_occ[0], left_upper_occ[1] + 2 * epsilon)
+    upper_bounds, lower_bounds, changed = calculate_entire_bounds(image, left_upper_occ, occlusion_size,
+                                                                  occlusion_color, left_upper_affected,
+                                                                  (height_affected, width_affected), epsilon)
 
     # ------------------------------------------------------------------------------------------
     # set network input bounds according to lower_bounds, upper_bounds and changed
@@ -168,91 +102,6 @@ def verify_with_marabou(network: MarabouNetwork, image: np.array, label: int, bo
 
     vals = network.solve(verbose=1)
     print(vals)
-
-
-def calculate_bounds(image, left_upper_occ, occlusion_size, occlusion_color, left_upper_affected, affected_size,
-                     upper_bounds, lower_bounds, changed):
-    """
-    update the upper_bounds, lower_bounds and changed according to the current occlusion point,
-    occlusion size and affected area
-    :param image: image in np array, 32*32*3
-    :param left_upper_occ: the left upper point of occlusion area, can be non-integer
-    :param occlusion_size: the (height, width) of occlusion area
-    :param occlusion_color: the color of occlusion area
-    :param left_upper_affected: the left upper point of affected area, must be integer
-    :param affected_size: the (height, width) of affected area
-    :param upper_bounds: the upper_bounds np array needs to be updated
-    :param lower_bounds: the lower_bounds np array needs to be updated
-    :param changed: the changed np array needs to be updated, size is 32*32
-    :return:
-    """
-    # --------------------------------------------------
-    # calculate the image under this occlusion settings
-    # --------------------------------------------------
-    img_np = image.astype(np.float32)
-    img_np_origin = img_np.copy()
-    height, width = image.shape[:2]
-    x, y = left_upper_occ
-    h, w = occlusion_size
-    x_in_img, y_in_img = max(0, x), max(0, y)
-    x_in_img_end, y_in_img_end = min(x + w, width), min(y + h, height)
-
-    # apply occlusion
-    # iterate through the occlusion area with while loop
-    i = y_in_img
-    j = x_in_img
-    while i < y_in_img_end:
-        while j < x_in_img_end:
-            # the i, j is non-integer
-            # the occlusion point affects four pixels around it
-            # get four pixels that will be affected by this occlusion point
-            # the four pixels are (floor(x), floor(y)), (floor(x), ceil(y)), (ceil(x), floor(y)), (ceil(x), ceil(y))
-            x1 = int(np.floor(j))
-            y1 = int(np.floor(i))
-            x2 = int(np.ceil(j))
-            y2 = int(np.ceil(i))
-            # img_np has shape (height, width, 3)
-            # get the four pixels' color
-            pixel_x1_y1 = img_np_origin[y1, x1, :]
-            pixel_x1_y2 = img_np_origin[y2, x1, :]
-            pixel_x2_y1 = img_np_origin[y1, x2, :]
-            pixel_x2_y2 = img_np_origin[y2, x2, :]
-
-            # calculate the coefficients of interpolation on four pixels
-            # by decompose the occlusion point color on x-axis and y-axis
-            coefficient_x1_y1 = ((x2 - j) / (x2 - x1)) * ((y2 - i) / (y2 - y1))
-            coefficient_x1_y2 = ((x2 - j) / (x2 - x1)) * ((i - y1) / (y2 - y1))
-            coefficient_x2_y1 = ((j - x1) / (x2 - x1)) * ((y2 - i) / (y2 - y1))
-            coefficient_x2_y2 = ((j - x1) / (x2 - x1)) * ((i - y1) / (y2 - y1))
-
-            # calculate the color of four pixels after applying occlusion
-            img_np[y1, x1] = img_np[y1, x1] - coefficient_x1_y1 * (pixel_x1_y1 - occlusion_color)
-            img_np[y1, x2] = img_np[y1, x2] - coefficient_x2_y1 * (pixel_x2_y1 - occlusion_color)
-            img_np[y2, x1] = img_np[y2, x1] - coefficient_x1_y2 * (pixel_x1_y2 - occlusion_color)
-            img_np[y2, x2] = img_np[y2, x2] - coefficient_x2_y2 * (pixel_x2_y2 - occlusion_color)
-
-            # move to the next occlusion point
-            j += 1
-        # move to the next occlusion point
-        i += 1
-        j = x_in_img
-
-    # iterate through the affected area to update the upper_bounds and lower_bounds
-    for i in range(left_upper_affected[0], left_upper_affected[0] + affected_size[0]):
-        for j in range(left_upper_affected[1], left_upper_affected[1] + affected_size[1]):
-            # get the color of the pixel
-            pixel = img_np[i, j]
-            if not changed[i, j]:
-                changed[i, j] = True
-                # update the upper_bounds and lower_bounds
-                upper_bounds[i, j] = pixel
-                lower_bounds[i, j] = pixel
-            else:
-                # update the upper_bounds and lower_bounds
-                if pixel > upper_bounds[i, j]:
-                    upper_bounds[i, j] = pixel
-                if pixel < lower_bounds[i, j]:
-                    lower_bounds[i, j] = pixel
 
 
 # test with some fixed upper and lower bounds
