@@ -22,7 +22,8 @@ def load_sample_image():
 def regular_occlusion_test():
     img = load_sample_image()
     occlusion_size = (10, 10)
-    occlusion_image = regular_occlusion(img, (3, 3), occlusion_size, 0)
+    occlusion_image = regular_occlusion(np.array(img), (3, 3), occlusion_size, 0)
+    occlusion_image = Image.fromarray(occlusion_image)
 
     # occlusion using PIL paste() as control image
     # generate a black occlusion mask
@@ -45,8 +46,12 @@ def regular_occlusion_test():
 def non_integer_occlusion_interpolation_test():
     img = load_sample_image()
     occlusion_size = (10, 10)
-    occlusion_image = occlusion_with_interpolation(img, (3.5, 3.5), occlusion_size, 0)
+    occlusion_image = occlusion_with_interpolation(np.array(img), (3.5, 3.5), occlusion_size, 0)
 
+    # convert numpy array back to PIL Image
+    # first convert img_np into uint8 type
+    occlusion_image = np.clip(occlusion_image, 0, 255).astype(np.uint8)
+    occlusion_image = Image.fromarray(occlusion_image)
     # occlusion using PIL paste() as control image
     # generate a black occlusion mask
     mask = Image.new('L', occlusion_size, 0)
