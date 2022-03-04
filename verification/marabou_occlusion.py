@@ -10,7 +10,7 @@ from maraboupy import Marabou, MarabouNetwork
 from PIL import Image
 import numpy as np
 
-from marabou_utils import load_network, load_sample_image
+from marabou_utils import load_network, load_sample_image, get_test_images_loader
 from occlusion_bound import calculate_entire_bounds
 
 
@@ -159,9 +159,14 @@ def verify_with_marabou_test(network: MarabouNetwork, image: np.array, label: in
 
 if __name__ == '__main__':
     # load sample image
-    np_img = load_sample_image()
+    # np_img = load_sample_image()
+    img_loader = get_test_images_loader()
 
     # load network
-    network = load_network('../model/fnn_model_gtsrb_small.onnx')
-    label = 0
-    verify_with_marabou_test(network, np_img, label, (0, 0), (1, 1))
+    network = load_network('../model/cnn_model_gtsrb_small.onnx')
+    iterable_img_loader = iter(img_loader)
+    # iterate first 5 images in img_loader
+    for i in range(5):
+        # get image and label
+        image, label = iterable_img_loader.next()
+        verify_with_marabou(network, image, label, (1, 1), (1, 1), 0, 0.5)

@@ -6,6 +6,10 @@
 from maraboupy import Marabou, MarabouNetwork
 from PIL import Image
 import numpy as np
+import torch
+from gtsrb.gtsrb_dataset import GTSRB
+from torch.utils.data import DataLoader
+from torchvision import transforms
 
 # load a network from onnx format file and return MarabouNetwork
 def load_network(filename) -> MarabouNetwork:
@@ -34,3 +38,21 @@ def load_sample_image() -> np.ndarray:
     np_img = np.transpose(np_img, (2, 0, 1))
     np_img = np.reshape(np_img, (1, 3, 32, 32))
     return np_img
+
+
+def get_test_images_loader() -> DataLoader:
+    """
+    Use Pytorch to load test images
+    :return: test images in np ndarray
+    """
+    data_transform = transforms.Compose([
+        transforms.Resize((32, 32)),
+        transforms.ToTensor(),
+        transforms.Normalize((0.3337, 0.3064, 0.3171), (0.2672, 0.2564, 0.2629))
+    ])
+    test_data = GTSRB(root_dir='../data', train=False, transform=data_transform)
+    test_loader = DataLoader(test_data, batch_size=1, shuffle=False)
+    samples, labels = iter(test_loader).next()
+    print(samples.shape)
+
+    return test_loader
