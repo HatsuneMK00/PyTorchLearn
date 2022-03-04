@@ -52,12 +52,6 @@ def verify_with_marabou(network: MarabouNetwork, image: np.array, label: int, bo
     image = np.transpose(image, (1, 2, 0))
     assert image.shape == (h, w, c)
 
-    # set the all inputs to the image values
-    for i in range(n_inputs):
-        val = image_flattened[i]
-        network.setLowerBound(inputs_flattened[i], val)
-        network.setUpperBound(inputs_flattened[i], val)
-
     # set the possible occlusion area
     # since the occlusion area can move up to epsilon, the possible occlusion
     # area is a square with size (h_o + 2 * epsilon, w_o + 2 * epsilon) and the left upper point
@@ -85,20 +79,19 @@ def verify_with_marabou(network: MarabouNetwork, image: np.array, label: int, bo
 
     # todo assert the affected area is larger than occlusion area by at most 1
 
-    upper_bounds, lower_bounds, changed = calculate_entire_bounds(image, left_upper_occ, occlusion_size,
+    upper_bounds, lower_bounds = calculate_entire_bounds(image, left_upper_occ, occlusion_size,
                                                                   occlusion_color, left_upper_affected,
                                                                   (height_affected, width_affected), epsilon)
 
     # ------------------------------------------------------------------------------------------
-    # set network input bounds according to lower_bounds, upper_bounds and changed
+    # set network input bounds according to lower_bounds, upper_bounds
     # ------------------------------------------------------------------------------------------
     # iterate over changed
-    for i in range(len(changed)):
-        for j in range(len(changed[i])):
-            if changed[i][j] == True:
-                for channel in range(c):
-                    network.setUpperBound(inputs[c][i][j], upper_bounds[i][j][channel])
-                    network.setLowerBound(inputs[c][i][j], lower_bounds[i][j][channel])
+    for i in range(h):
+        for j in range(w):
+            for channel in range(c):
+                network.setUpperBound(inputs[c][i][j], upper_bounds[i][j][channel])
+                network.setLowerBound(inputs[c][i][j], lower_bounds[i][j][channel])
 
     vals = network.solve(verbose=1)
     print(vals)

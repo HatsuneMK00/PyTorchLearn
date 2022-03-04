@@ -15,7 +15,7 @@ def calculate_entire_bounds(image, left_upper_occ, occlusion_size, occlusion_col
     :param left_upper_affected: left upper point of affected area
     :param affected_size: 2-tuple indicating the affected area size, must be integer
     :param epsilon: float indicating the epsilon, must be positive, can be non-integer
-    :return: (upper_bounds(32*32*3), lower_bounds(32*32*3), changed(32*32))
+    :return: (upper_bounds(32*32*3), lower_bounds(32*32*3))
     """
     # --------------------------------------------------
     # for every optimal-possible occlusion point on the edge of occlusion area
@@ -30,6 +30,8 @@ def calculate_entire_bounds(image, left_upper_occ, occlusion_size, occlusion_col
     # record whether the upper bound and lower bound is changed for each pixel
     # has same size as the image but without last dimension
     changed = np.zeros(image.shape[:-1])
+
+    image_origin = image.copy()
 
     # --------------------------------------------------
     # iterate through optimal-possible occlusion point on the edge of occlusion area
@@ -91,11 +93,19 @@ def calculate_entire_bounds(image, left_upper_occ, occlusion_size, occlusion_col
                   affected_size, upper_bounds, lower_bounds, changed)
 
     # iterate through points covered by the occlusion area and set the lower_bounds to occlusion color
+    # in case some of them is not 0
     for i in range(int(np.ceil(left_upper_occ[0])), occlusion_size[0] + 1):
         for j in range(int(np.ceil(left_upper_occ[1])), occlusion_size[1] + 1):
             lower_bounds[i][j] = occlusion_color
 
-    return upper_bounds, lower_bounds, changed
+    # iterate through points where changed is False and set their upper_bounds and lower_bounds to their origin values
+    for i in range(upper_bounds.shape[0]):
+        for j in range(upper_bounds.shape[1]):
+            if not changed[i][j]:
+                upper_bounds[i][j] = image_origin[i][j]
+                lower_bounds[i][j] = image_origin[i][j]
+
+    return upper_bounds, lower_bounds
 
 
 def update_bounds(image, left_upper_occ, occlusion_size, occlusion_color, left_upper_affected, affected_size,
