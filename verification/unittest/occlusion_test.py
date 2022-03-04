@@ -157,5 +157,80 @@ class MarabouOcclusionTest(unittest.TestCase):
         self.assertTrue((lower_bounds[2, 3] == 3 / 4 * image_origin[2, 3]).all())
 
 
+    # test the marabou_occlusion.py script
+    # occlusion size = (1, 1), image size = (3, 3), epsilon = 0.5, occlusion point = (0.5, 0.5)
+    def test_occlusion_1_1_3_3_0_5_0_5_0_5(self):
+        image = np.ones((3, 3, 3)) * 4
+        image_origin = np.copy(image)
+        upper_bounds, lower_bounds = calculate_entire_bounds(image, (0, 0), (1, 1), 0, (0, 0), (1, 1), 0.5)
+        # --- assert the bounds ---
+        # f(0, 0) >= 0, f(0, 0) <= f(0, 0)
+        # f(1, 0) >= 0, f(1, 0) <= f(1, 0)
+        # f(2, 0) >= f(2, 0), f(2, 0) <= f(2, 0)
+        # f(0, 1) >= 0, f(0, 1) <= f(0, 1)
+        # f(1, 1) >= 0, f(1, 1) <= f(1, 1)
+        # f(2, 1) >= f(2, 1), f(2, 1) <= f(2, 1)
+        # f(0, 2) >= f(0, 2), f(0, 2) <= f(0, 2)
+        # f(1, 2) >= f(1, 2), f(1, 2) <= f(1, 2)
+        # f(2, 2) >= f(2, 2), f(2, 2) <= f(2, 2)
+        # --- assert the bounds ---
+        self.assertTrue((upper_bounds[0, 0] == image_origin[0, 0]).all())
+        self.assertTrue((lower_bounds[0, 0] == 0).all())
+        self.assertTrue((upper_bounds[0, 1] == image_origin[0, 1]).all())
+        self.assertTrue((lower_bounds[0, 1] == 0).all())
+        self.assertTrue((upper_bounds[0, 2] == image_origin[0, 2]).all())
+        self.assertTrue((lower_bounds[0, 2] == image_origin[0, 2]).all())
+        self.assertTrue((upper_bounds[1, 0] == image_origin[1, 0]).all())
+        self.assertTrue((lower_bounds[1, 0] == 0).all())
+        self.assertTrue((upper_bounds[1, 1] == image_origin[1, 1]).all())
+        self.assertTrue((lower_bounds[1, 1] == 0).all())
+        self.assertTrue((upper_bounds[1, 2] == image_origin[1, 2]).all())
+        self.assertTrue((lower_bounds[1, 2] == image_origin[1, 2]).all())
+        self.assertTrue((upper_bounds[2, 0] == image_origin[2, 0]).all())
+        self.assertTrue((lower_bounds[2, 0] == image_origin[2, 0]).all())
+        self.assertTrue((upper_bounds[2, 1] == image_origin[2, 1]).all())
+        self.assertTrue((lower_bounds[2, 1] == image_origin[2, 1]).all())
+        self.assertTrue((upper_bounds[2, 2] == image_origin[2, 2]).all())
+        self.assertTrue((lower_bounds[2, 2] == image_origin[2, 2]).all())
+
+    # test the marabou_occlusion.py script
+    # occlusion size = (1, 1), image size = (3, 3), epsilon = 0.5, occlusion point = (0.75, 0.75)
+    def test_occlusion_1_1_3_3_0_5_0_75_0_75(self):
+        # create a 3x3*3 image with value 4
+        image = np.ones((3, 3, 3)) * 4
+        image_origin = np.copy(image)
+        upper_bounds, lower_bounds = calculate_entire_bounds(image, (0.25, 0.25), (1, 1), 0, (0, 0), (2, 2), 0.5)
+
+        # --- assert the bounds ---
+        # f(0, 0) >= 7 / 16 * f(0, 0), f(0, 0) <= f(0, 0)
+        # f(1, 0) >= 1 / 4 * f(1, 0), f(1, 0) <= f(1, 0)
+        # f(2, 0) >= 13 / 16 * f(2, 0), f(2, 0) <= f(2, 0)
+        # f(0, 1) >= 1 / 4 * f(0, 1), f(0, 1) <= f(0, 1)
+        # f(1, 1) >= 0, f(1, 1) <= 15 / 16 * f(1, 1)
+        # f(2, 1) >= 3 / 4 * f(2, 1), f(2, 1) <= f(2, 1)
+        # f(0, 2) >= 13 / 16 * f(0, 2), f(0, 2) <= f(0, 2)
+        # f(1, 2) >= 3 / 4 * f(1, 2), f(1, 2) <= f(1, 2)
+        # f(2, 2) >= 15 / 16 * f(2, 2), f(2, 2) <= f(2, 2)
+        # --- assert the bounds ---
+        self.assertTrue((upper_bounds[0, 0] == image_origin[0, 0]).all())
+        self.assertTrue((lower_bounds[0, 0] == 7 / 16 * image_origin[0, 0]).all())
+        self.assertTrue((upper_bounds[0, 1] == image_origin[0, 1]).all())
+        self.assertTrue((lower_bounds[0, 1] == 1 / 4 * image_origin[0, 1]).all())
+        self.assertTrue((upper_bounds[0, 2] == image_origin[0, 2]).all())
+        self.assertTrue((lower_bounds[0, 2] == 13 / 16 * image_origin[0, 2]).all())
+        self.assertTrue((upper_bounds[1, 0] == image_origin[1, 0]).all())
+        self.assertTrue((lower_bounds[1, 0] == 1 / 4 * image_origin[1, 0]).all())
+        self.assertTrue((upper_bounds[1, 1] == 15 / 16 * image_origin[1, 1]).all())
+        self.assertTrue((lower_bounds[1, 1] == 0).all())
+        self.assertTrue((upper_bounds[1, 2] == image_origin[1, 2]).all())
+        self.assertTrue((lower_bounds[1, 2] == 3 / 4 * image_origin[1, 2]).all())
+        self.assertTrue((upper_bounds[2, 0] == image_origin[2, 0]).all())
+        self.assertTrue((lower_bounds[2, 0] == 13 / 16 * image_origin[2, 0]).all())
+        self.assertTrue((upper_bounds[2, 1] == image_origin[2, 1]).all())
+        self.assertTrue((lower_bounds[2, 1] == 3 / 4 * image_origin[2, 1]).all())
+        self.assertTrue((upper_bounds[2, 2] == image_origin[2, 2]).all())
+        self.assertTrue((lower_bounds[2, 2] == 15 / 16 * image_origin[2, 2]).all())
+
+
 if __name__ == '__main__':
     unittest.main()

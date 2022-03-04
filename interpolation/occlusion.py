@@ -13,7 +13,7 @@ import numpy as np
 # combine two type of occlusion
 def occlusion(img, box, occlusion_size, occlusion_color):
     """
-    Use regular occlusion when the box is integer
+    Use interpolation occlusion when the box is integer since it now supports
     Use interpolation occlusion when the box is non-integer
     :param img: np array
     :param box: A 2-tuple which is treated as the upper left corner of occlusion
@@ -22,17 +22,13 @@ def occlusion(img, box, occlusion_size, occlusion_color):
     :return:
     """
     # check if the box is integer
-    if int(box[0]) == box[0] and int(box[1]) == box[1]:
-        # apply regular occlusion
-        img_np = regular_occlusion(img, box, occlusion_size, occlusion_color)
-    else:
-        img_np = occlusion_with_interpolation(img, box, occlusion_size, occlusion_color)
-
+    img_np = occlusion_with_interpolation(img, box, occlusion_size, occlusion_color)
     return img_np
 
 
 # regular occlusion
 # the occlusion has integer upper left corner and integer height and width
+# fixme seem to have some problem with slice (like not integer) not an important bug
 def regular_occlusion(img, box, occlusion_size, occlusion_color):
     """
     :param img: np array
@@ -130,7 +126,7 @@ def occlusion_with_interpolation(img, box, occlusion_size, occlusion_color):
             # if x1 == x2, only assign (y1, x1) and (y2, x1)
             elif x1 == x2:
                 img_np[y1, x1] = img_np[y1, x1] - coefficient_x1_y1 * (pixel_x1_y1 - occlusion_color)
-                img_np[y2, x1] = img_np[y2, x1] - coefficient_x2_y1 * (pixel_x2_y1 - occlusion_color)
+                img_np[y2, x1] = img_np[y2, x1] - coefficient_x1_y2 * (pixel_x1_y2 - occlusion_color)
             # else if y1 == y2, only assign (y1, x1) and (y1, x2)
             elif y1 == y2:
                 img_np[y1, x1] = img_np[y1, x1] - coefficient_x1_y1 * (pixel_x1_y1 - occlusion_color)
