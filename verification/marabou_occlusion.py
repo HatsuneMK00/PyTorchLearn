@@ -21,6 +21,7 @@ occlusion_size = (1, 1)
 occlusion_color = 0
 epsilon = 0.5
 input_size = (32, 32)
+output_dim = 43
 batch_num = 2
 result_file_dir = '../experiment/results/'
 
@@ -106,10 +107,6 @@ def verify_with_marabou(network: MarabouNetwork, image: np.array, label: int, bo
                 network.setLowerBound(inputs[channel][i][j], lower_bounds[i][j][channel])
     # ------------------------------------------------------------------------------------------
     # set bounds for network output
-    # in current output bounds, unsat should mean it's not robust to occlusion
-    # and sat should mean it's robust to occlusion and the assignment given is an input that make network classify correctly
-    # which doesn't mean anything
-    # if we want adversarial example, we need to iterate over all outputs, and solve them separately
     # ------------------------------------------------------------------------------------------
     for i in range(n_outputs):
         if i != label:
@@ -118,11 +115,11 @@ def verify_with_marabou(network: MarabouNetwork, image: np.array, label: int, bo
     bound_calculation_time = time.monotonic() - bound_calculation_start_time
 
     verify_start_time = time.monotonic()
-    vals = network.solve(filename='redirect_output_file', verbose=True) # vals is a list, not a tuple as document says
+    vals = network.solve(filename='redirect_output_file', verbose=True)  # vals is a list, not a tuple as document says
     verify_time = time.monotonic() - verify_start_time
     print("vals length", len(vals))
 
-    return vals[0], bound_calculation_time, verify_time
+    return vals, bound_calculation_time, verify_time
 
 
 # test with some fixed upper and lower bounds
@@ -195,21 +192,42 @@ if __name__ == '__main__':
     results = []
     # iterate first <batch_num> batch of images in img_loader
     for i in range(batch_num):
+        start_time = time.monotonic()
+        results_batch = []
         # get image and label
         image, label = iterable_img_loader.next()
         # convert tensor into numpy array
         image = image.numpy()
-        vals, bound_calculation_time, verify_time = verify_with_marabou(network, image, label, occlusion_point,
-                                                                        occlusion_size, occlusion_color, epsilon)
-        print("bound_calculation_time:", bound_calculation_time)
-        print("verify_time:", verify_time)
-        print("total_time:", bound_calculation_time + verify_time)
+        isRobust = True
+        bound_calculation_time = -1.0
+        verify_time = -1.0
+        predicted_label = -1
+        for target_label in range(output_dim):
+            results_batch = []
+            if target_label == label:
+                continue
+            vals, bound_calculation_time, verify_time = verify_with_marabou(network, image, target_label,
+                                                                            occlusion_point,
+                                                                            occlusion_size, occlusion_color, epsilon)
+            results_batch.append(
+                {'vals': vals[0], 'bound_calculation_time': bound_calculation_time, 'verify_time': verify_time,
+                 'target_label': target_label})
+            # not robust in this target label
+            if vals[0] == 'sat':
+                adversarial_example = vals[2]
+                predicted_label = target_label
+                isRobust = False
+                break
         # pack vals, bound_calculation_time, verify_time into a dict and append it to results
-        results.append({'vals': vals, 'bound_calculation_time': bound_calculation_time, 'verify_time': verify_time, 'true_label:': label})
+        total_time = time.monotonic() - start_time
+        results.append(
+            {'robust': isRobust, 'total_verify_time': total_time,
+             'true_label:': label, 'predicted_label': predicted_label, 'detail': results_batch})
 
     # save results to file
     # encode model name, batch_num, occlusion_point, occlusion_size, occlusion_color, epsilon into filename
-    result_filepath = result_file_dir + f'{model_name}_batchNum_{batch_num}_occlusionPoint_{occlusion_point[0]}_{occlusion_point[1]}_occlusionSize_{occlusion_size[0]}_{occlusion_size[1]}_occlusionColor_{occlusion_color}_epsilon_{epsilon}.json'
+    result_filepath = result_file_dir + f'{model_name}_batchNum_{batch_num}_occlusionPoint_{occlusion_point[0]}_{occlusion_point[1]}_occlusionSize_{occlusion_size[0]}_{occlusion_size[1]}_occlusionColor_{occlusion_color}_epsilon_{epsilon}_outputDim_{output_dim}.json'
     with open(result_filepath, 'w') as f:
         json.dump(results, f)
         f.write('\n')
+        f.flush()
