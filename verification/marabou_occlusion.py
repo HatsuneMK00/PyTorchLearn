@@ -2,21 +2,33 @@
 # created by makise, 2022/3/1
 
 # This script is used to verify occlusion type perturbation with Marabou.
-
+import json
 
 import onnx
 import onnxruntime
 from maraboupy import Marabou, MarabouNetwork
 from PIL import Image
 import numpy as np
+import time
 
 from marabou_utils import load_network, load_sample_image, get_test_images_loader
 from occlusion_bound import calculate_entire_bounds
 
+# define some global variables
+model_name = "cnn_model_gtsrb_small.onnx"
+occlusion_point = (1, 1)
+occlusion_size = (1, 1)
+occlusion_color = 0
+epsilon = 0.5
+input_size = (32, 32)
+batch_num = 10
+result_file_dir = '../experiment/results/'
+
 
 # verify with marabou
-def verify_with_marabou(network: MarabouNetwork, image: np.array, label: int, box, occlusion_size=(1, 1),
-                        occlusion_color=0, epsilon=0.5):
+def verify_with_marabou(network: MarabouNetwork, image: np.array, label: int, box, occlusion_size,
+                        occlusion_color, epsilon):
+    bound_calculation_start_time = time.monotonic()
     """
     Verify occlusion on image with marabou
     :param network: MarabouNetwork
@@ -80,8 +92,8 @@ def verify_with_marabou(network: MarabouNetwork, image: np.array, label: int, bo
     # todo assert the affected area is larger than occlusion area by at most 1
 
     upper_bounds, lower_bounds = calculate_entire_bounds(image, left_upper_occ, occlusion_size,
-                                                                  occlusion_color, left_upper_affected,
-                                                                  (height_affected, width_affected), epsilon)
+                                                         occlusion_color, left_upper_affected,
+                                                         (height_affected, width_affected), epsilon)
 
     # ------------------------------------------------------------------------------------------
     # set network input bounds according to lower_bounds, upper_bounds
@@ -92,9 +104,14 @@ def verify_with_marabou(network: MarabouNetwork, image: np.array, label: int, bo
             for channel in range(c):
                 network.setUpperBound(inputs[c][i][j], upper_bounds[i][j][channel])
                 network.setLowerBound(inputs[c][i][j], lower_bounds[i][j][channel])
+    bound_calculation_time = time.monotonic() - bound_calculation_start_time
 
+    # ------------------------------------------------------------------------------------------
+    verify_start_time = time.monotonic()
     vals = network.solve(verbose=1)
-    print(vals)
+    verify_time = time.monotonic() - verify_start_time
+
+    return vals, bound_calculation_time, verify_time
 
 
 # test with some fixed upper and lower bounds
@@ -158,15 +175,27 @@ def verify_with_marabou_test(network: MarabouNetwork, image: np.array, label: in
 
 
 if __name__ == '__main__':
-    # load sample image
-    # np_img = load_sample_image()
-    img_loader = get_test_images_loader()
-
     # load network
-    network = load_network('../model/cnn_model_gtsrb_small.onnx')
+    network = load_network(model_name)
+    # load sample image
+    img_loader = get_test_images_loader(input_size)
     iterable_img_loader = iter(img_loader)
-    # iterate first 5 images in img_loader
-    for i in range(5):
+
+    results = []
+    # iterate first <batch_num> batch of images in img_loader
+    for i in range(batch_num):
         # get image and label
         image, label = iterable_img_loader.next()
-        verify_with_marabou(network, image, label, (1, 1), (1, 1), 0, 0.5)
+        vals, bound_calculation_time, verify_time = verify_with_marabou(network, image, label, occlusion_point,
+                                                                        occlusion_size, occlusion_color, epsilon)
+        print("bound_calculation_time:", bound_calculation_time)
+        print("verify_time:", verify_time)
+        print("total_time:", bound_calculation_time + verify_time)
+        # pack vals, bound_calculation_time, verify_time into a dict and append it to results
+        results.append({'vals': vals, 'bound_calculation_time': bound_calculation_time, 'verify_time': verify_time})
+
+    # save results to file
+    # encode model name, batch_num, occlusion_point, occlusion_size, occlusion_color, epsilon into filename
+    result_filepath = result_file_dir + f'{model_name}_batchNum_{batch_num}_occlusionPoint_{occlusion_point}_occlusionSize_{occlusion_size}_occlusionColor_{occlusion_color}_epsilon_{epsilon}.json'
+    with open(result_filepath, 'w') as f:
+        json.dump(results, f)
