@@ -104,6 +104,17 @@ def verify_with_marabou(network: MarabouNetwork, image: np.array, label: int, bo
             for channel in range(c):
                 network.setUpperBound(inputs[channel][i][j], upper_bounds[i][j][channel])
                 network.setLowerBound(inputs[channel][i][j], lower_bounds[i][j][channel])
+    # ------------------------------------------------------------------------------------------
+    # set bounds for network output
+    # in current output bounds, unsat should mean it's not robust to occlusion
+    # and sat should mean it's robust to occlusion and the assignment given is an input that make network classify correctly
+    # which doesn't mean anything
+    # if we want adversarial example, we need to iterate over all outputs, and solve them separately
+    # ------------------------------------------------------------------------------------------
+    for i in range(n_outputs):
+        if i != label:
+            network.setUpperBound(outputs_flattened[i], outputs_flattened[label])
+
     bound_calculation_time = time.monotonic() - bound_calculation_start_time
 
     verify_start_time = time.monotonic()
@@ -194,11 +205,11 @@ if __name__ == '__main__':
         print("verify_time:", verify_time)
         print("total_time:", bound_calculation_time + verify_time)
         # pack vals, bound_calculation_time, verify_time into a dict and append it to results
-        results.append({'vals': vals, 'bound_calculation_time': bound_calculation_time, 'verify_time': verify_time})
+        results.append({'vals': vals, 'bound_calculation_time': bound_calculation_time, 'verify_time': verify_time, 'true_label:': label})
 
     # save results to file
     # encode model name, batch_num, occlusion_point, occlusion_size, occlusion_color, epsilon into filename
-    result_filepath = result_file_dir + f'{model_name}_batchNum_{batch_num}_occlusionPoint_{occlusion_point}_occlusionSize_{occlusion_size}_occlusionColor_{occlusion_color}_epsilon_{epsilon}.json'
+    result_filepath = result_file_dir + f'{model_name}_batchNum_{batch_num}_occlusionPoint_{occlusion_point[0]}_{occlusion_point[1]}_occlusionSize_{occlusion_size[0]}_{occlusion_size[1]}_occlusionColor_{occlusion_color}_epsilon_{epsilon}.json'
     with open(result_filepath, 'w') as f:
         json.dump(results, f)
         f.write('\n')

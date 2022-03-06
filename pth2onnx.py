@@ -52,7 +52,7 @@ def export_model_2_onnx(model, model_name, device, input_size, channel_num, batc
     # export the model to onnx format
     dummy_input = torch.randn(batch_size, channel_num, input_size[0], input_size[1])
     # encode input_size, channel_num, batch_size, output_dim to the onnx model filename
-    onnx_model_filename = f'{model_name}_inputSize_({input_size[0]}, {input_size[1]})_channelNum_{channel_num}_batchSize_{batch_size}_outputDim_{output_dim}.onnx'
+    onnx_model_filename = f'{model_name}_inputSize_{input_size[0]}, {input_size[1]}_channelNum_{channel_num}_batchSize_{batch_size}_outputDim_{output_dim}.onnx'
     torch.onnx.export(model, dummy_input, model_save_dir + onnx_model_filename, verbose=True)
 
 
