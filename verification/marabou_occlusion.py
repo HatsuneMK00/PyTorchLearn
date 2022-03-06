@@ -21,7 +21,7 @@ occlusion_size = (1, 1)
 occlusion_color = 0
 epsilon = 0.5
 input_size = (32, 32)
-batch_num = 10
+batch_num = 2
 result_file_dir = '../experiment/results/'
 
 
@@ -102,16 +102,16 @@ def verify_with_marabou(network: MarabouNetwork, image: np.array, label: int, bo
     for i in range(h):
         for j in range(w):
             for channel in range(c):
-                network.setUpperBound(inputs[c][i][j], upper_bounds[i][j][channel])
-                network.setLowerBound(inputs[c][i][j], lower_bounds[i][j][channel])
+                network.setUpperBound(inputs[channel][i][j], upper_bounds[i][j][channel])
+                network.setLowerBound(inputs[channel][i][j], lower_bounds[i][j][channel])
     bound_calculation_time = time.monotonic() - bound_calculation_start_time
 
-    # ------------------------------------------------------------------------------------------
     verify_start_time = time.monotonic()
-    vals = network.solve(verbose=1)
+    vals = network.solve(filename='redirect_output_file', verbose=True) # vals is a list, not a tuple as document says
     verify_time = time.monotonic() - verify_start_time
+    print("vals length", len(vals))
 
-    return vals, bound_calculation_time, verify_time
+    return vals[0], bound_calculation_time, verify_time
 
 
 # test with some fixed upper and lower bounds
@@ -186,6 +186,8 @@ if __name__ == '__main__':
     for i in range(batch_num):
         # get image and label
         image, label = iterable_img_loader.next()
+        # convert tensor into numpy array
+        image = image.numpy()
         vals, bound_calculation_time, verify_time = verify_with_marabou(network, image, label, occlusion_point,
                                                                         occlusion_size, occlusion_color, epsilon)
         print("bound_calculation_time:", bound_calculation_time)
@@ -199,3 +201,4 @@ if __name__ == '__main__':
     result_filepath = result_file_dir + f'{model_name}_batchNum_{batch_num}_occlusionPoint_{occlusion_point}_occlusionSize_{occlusion_size}_occlusionColor_{occlusion_color}_epsilon_{epsilon}.json'
     with open(result_filepath, 'w') as f:
         json.dump(results, f)
+        f.write('\n')
