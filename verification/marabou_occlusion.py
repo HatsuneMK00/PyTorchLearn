@@ -27,9 +27,11 @@ result_file_dir = '../experiment/results/'
 
 
 # verify with marabou
-def verify_with_marabou(network: MarabouNetwork, image: np.array, label: int, box, occlusion_size,
+def verify_with_marabou(image: np.array, label: int, box, occlusion_size,
                         occlusion_color, epsilon):
     bound_calculation_start_time = time.monotonic()
+    # load network
+    network = load_network(model_name)
     """
     Verify occlusion on image with marabou
     :param network: MarabouNetwork
@@ -110,12 +112,12 @@ def verify_with_marabou(network: MarabouNetwork, image: np.array, label: int, bo
     # ------------------------------------------------------------------------------------------
     for i in range(n_outputs):
         if i != label:
-            network.setUpperBound(outputs_flattened[i], outputs_flattened[label])
+            network.addInequality([outputs_flattened[i], outputs_flattened[label]], [1, -1], 0)
 
     bound_calculation_time = time.monotonic() - bound_calculation_start_time
 
     verify_start_time = time.monotonic()
-    vals = network.solve(filename='redirect_output_file', verbose=True)  # vals is a list, not a tuple as document says
+    vals = network.solve(verbose=True)  # vals is a list, not a tuple as document says
     verify_time = time.monotonic() - verify_start_time
     print("vals length", len(vals))
 
@@ -183,8 +185,6 @@ def verify_with_marabou_test(network: MarabouNetwork, image: np.array, label: in
 
 
 if __name__ == '__main__':
-    # load network
-    network = load_network(model_name)
     # load sample image
     img_loader = get_test_images_loader(input_size)
     iterable_img_loader = iter(img_loader)
@@ -198,15 +198,16 @@ if __name__ == '__main__':
         image, label = iterable_img_loader.next()
         # convert tensor into numpy array
         image = image.numpy()
+        label = label.item()
         isRobust = True
         bound_calculation_time = -1.0
         verify_time = -1.0
         predicted_label = -1
+        results_batch = []
         for target_label in range(output_dim):
-            results_batch = []
             if target_label == label:
                 continue
-            vals, bound_calculation_time, verify_time = verify_with_marabou(network, image, target_label,
+            vals, bound_calculation_time, verify_time = verify_with_marabou(image, target_label,
                                                                             occlusion_point,
                                                                             occlusion_size, occlusion_color, epsilon)
             results_batch.append(
