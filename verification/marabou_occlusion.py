@@ -187,7 +187,7 @@ def verify_with_marabou_test(network: MarabouNetwork, image: np.array, label: in
 
 if __name__ == '__main__':
     # load sample image
-    img_loader = get_test_images_loader(input_size)
+    img_loader = get_test_images_loader(input_size, output_dim=output_dim)
     iterable_img_loader = iter(img_loader)
 
     results = []
