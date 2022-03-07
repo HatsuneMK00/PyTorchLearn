@@ -204,6 +204,7 @@ if __name__ == '__main__':
         verify_time = -1.0
         predicted_label = -1
         results_batch = []
+        adversarial_example = None
         for target_label in range(output_dim):
             if target_label == label:
                 continue
@@ -223,7 +224,8 @@ if __name__ == '__main__':
         total_time = time.monotonic() - start_time
         results.append(
             {'robust': isRobust, 'total_verify_time': total_time,
-             'true_label:': label, 'predicted_label': predicted_label, 'detail': results_batch})
+             'true_label:': label, 'predicted_label': predicted_label, 'adversarial_example': adversarial_example,
+             'origin_image': image, 'detail': results_batch})
 
     # save results to file
     # encode model name, batch_num, occlusion_point, occlusion_size, occlusion_color, epsilon into filename
