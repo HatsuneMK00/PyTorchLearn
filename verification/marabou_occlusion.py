@@ -16,14 +16,15 @@ from occlusion_bound import calculate_entire_bounds
 
 # define some global variables
 model_name = "cnn_model_gtsrb_small.onnx"
-occlusion_point = (1, 1)
-occlusion_size = (1, 1)
+occlusion_point = (16, 16)
+occlusion_size = (5, 5)
 occlusion_color = 0
 epsilon = 0.5
 input_size = (32, 32)
 output_dim = 43
-batch_num = 2
+batch_num = 10
 result_file_dir = '../experiment/results/'
+# todo add time stamp to filename
 
 
 # verify with marabou
