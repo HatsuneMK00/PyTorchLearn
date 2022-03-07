@@ -2,21 +2,36 @@
 # created by makise, 2022/3/1
 
 # This script is used to verify occlusion type perturbation with Marabou.
-
+import json
 
 import onnx
 import onnxruntime
 from maraboupy import Marabou, MarabouNetwork
 from PIL import Image
 import numpy as np
+import time
 
-from marabou_utils import load_network, load_sample_image
+from marabou_utils import load_network, load_sample_image, get_test_images_loader
 from occlusion_bound import calculate_entire_bounds
+
+# define some global variables
+model_name = "cnn_model_gtsrb_small.onnx"
+occlusion_point = (1, 1)
+occlusion_size = (1, 1)
+occlusion_color = 0
+epsilon = 0.5
+input_size = (32, 32)
+output_dim = 43
+batch_num = 2
+result_file_dir = '../experiment/results/'
 
 
 # verify with marabou
-def verify_with_marabou(network: MarabouNetwork, image: np.array, label: int, box, occlusion_size=(1, 1),
-                        occlusion_color=0, epsilon=0.5):
+def verify_with_marabou(image: np.array, label: int, box, occlusion_size,
+                        occlusion_color, epsilon):
+    bound_calculation_start_time = time.monotonic()
+    # load network
+    network = load_network(model_name)
     """
     Verify occlusion on image with marabou
     :param network: MarabouNetwork
@@ -80,8 +95,8 @@ def verify_with_marabou(network: MarabouNetwork, image: np.array, label: int, bo
     # todo assert the affected area is larger than occlusion area by at most 1
 
     upper_bounds, lower_bounds = calculate_entire_bounds(image, left_upper_occ, occlusion_size,
-                                                                  occlusion_color, left_upper_affected,
-                                                                  (height_affected, width_affected), epsilon)
+                                                         occlusion_color, left_upper_affected,
+                                                         (height_affected, width_affected), epsilon)
 
     # ------------------------------------------------------------------------------------------
     # set network input bounds according to lower_bounds, upper_bounds
@@ -90,11 +105,23 @@ def verify_with_marabou(network: MarabouNetwork, image: np.array, label: int, bo
     for i in range(h):
         for j in range(w):
             for channel in range(c):
-                network.setUpperBound(inputs[c][i][j], upper_bounds[i][j][channel])
-                network.setLowerBound(inputs[c][i][j], lower_bounds[i][j][channel])
+                network.setUpperBound(inputs[channel][i][j], upper_bounds[i][j][channel])
+                network.setLowerBound(inputs[channel][i][j], lower_bounds[i][j][channel])
+    # ------------------------------------------------------------------------------------------
+    # set bounds for network output
+    # ------------------------------------------------------------------------------------------
+    for i in range(n_outputs):
+        if i != label:
+            network.addInequality([outputs_flattened[i], outputs_flattened[label]], [1, -1], 0)
 
-    vals = network.solve(verbose=1)
-    print(vals)
+    bound_calculation_time = time.monotonic() - bound_calculation_start_time
+
+    verify_start_time = time.monotonic()
+    vals = network.solve(verbose=True)  # vals is a list, not a tuple as document says
+    verify_time = time.monotonic() - verify_start_time
+    print("vals length", len(vals))
+
+    return vals, bound_calculation_time, verify_time
 
 
 # test with some fixed upper and lower bounds
@@ -159,9 +186,49 @@ def verify_with_marabou_test(network: MarabouNetwork, image: np.array, label: in
 
 if __name__ == '__main__':
     # load sample image
-    np_img = load_sample_image()
+    img_loader = get_test_images_loader(input_size)
+    iterable_img_loader = iter(img_loader)
 
-    # load network
-    network = load_network('../model/fnn_model_gtsrb_small.onnx')
-    label = 0
-    verify_with_marabou_test(network, np_img, label, (0, 0), (1, 1))
+    results = []
+    # iterate first <batch_num> batch of images in img_loader
+    for i in range(batch_num):
+        start_time = time.monotonic()
+        results_batch = []
+        # get image and label
+        image, label = iterable_img_loader.next()
+        # convert tensor into numpy array
+        image = image.numpy()
+        label = label.item()
+        isRobust = True
+        bound_calculation_time = -1.0
+        verify_time = -1.0
+        predicted_label = -1
+        results_batch = []
+        for target_label in range(output_dim):
+            if target_label == label:
+                continue
+            vals, bound_calculation_time, verify_time = verify_with_marabou(image, target_label,
+                                                                            occlusion_point,
+                                                                            occlusion_size, occlusion_color, epsilon)
+            results_batch.append(
+                {'vals': vals[0], 'bound_calculation_time': bound_calculation_time, 'verify_time': verify_time,
+                 'target_label': target_label})
+            # not robust in this target label
+            if vals[0] == 'sat':
+                adversarial_example = vals[2]
+                predicted_label = target_label
+                isRobust = False
+                break
+        # pack vals, bound_calculation_time, verify_time into a dict and append it to results
+        total_time = time.monotonic() - start_time
+        results.append(
+            {'robust': isRobust, 'total_verify_time': total_time,
+             'true_label:': label, 'predicted_label': predicted_label, 'detail': results_batch})
+
+    # save results to file
+    # encode model name, batch_num, occlusion_point, occlusion_size, occlusion_color, epsilon into filename
+    result_filepath = result_file_dir + f'{model_name}_batchNum_{batch_num}_occlusionPoint_{occlusion_point[0]}_{occlusion_point[1]}_occlusionSize_{occlusion_size[0]}_{occlusion_size[1]}_occlusionColor_{occlusion_color}_epsilon_{epsilon}_outputDim_{output_dim}.json'
+    with open(result_filepath, 'w') as f:
+        json.dump(results, f)
+        f.write('\n')
+        f.flush()

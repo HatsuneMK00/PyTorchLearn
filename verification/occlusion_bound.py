@@ -130,8 +130,8 @@ def update_bounds(image, left_upper_occ, occlusion_size, occlusion_color, left_u
     img_np = occlusion(image, left_upper_occ, occlusion_size, occlusion_color)
     h, w, c = img_np.shape
     # iterate through the affected area to update the upper_bounds and lower_bounds
-    for i in range(left_upper_affected[0], left_upper_affected[0] + affected_size[0] + 1):
-        for j in range(left_upper_affected[1], left_upper_affected[1] + affected_size[1] + 1):
+    for i in range(int(left_upper_affected[0]), int(left_upper_affected[0] + affected_size[0]) + 1):
+        for j in range(int(left_upper_affected[1]), int(left_upper_affected[1] + affected_size[1]) + 1):
             # get the color of the pixel
             pixel = img_np[i, j]
             if not changed[i, j]:
