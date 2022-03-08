@@ -6,7 +6,7 @@ import json
 
 import onnx
 import onnxruntime
-from maraboupy import Marabou, MarabouNetwork
+from maraboupy import Marabou, MarabouNetwork, MarabouCore
 from PIL import Image
 import numpy as np
 import time
@@ -109,6 +109,15 @@ def verify_with_marabou(image: np.array, label: int, box, occlusion_size,
                 network.setUpperBound(inputs[channel][i][j], upper_bounds[i][j][channel])
                 network.setLowerBound(inputs[channel][i][j], lower_bounds[i][j][channel])
     # ------------------------------------------------------------------------------------------
+    # set extra n^2 imply constraints to tighten the bounds
+    # ------------------------------------------------------------------------------------------
+    # iterate over the inputs
+    span_x = w_o + 1
+    span_y = h_o + 1
+    for i in range(h):
+        for j in range(w):
+            set_implied_constraints(network, inputs, image, (i, j), span_x, span_y)
+    # ------------------------------------------------------------------------------------------
     # set bounds for network output
     # ------------------------------------------------------------------------------------------
     for i in range(n_outputs):
@@ -123,6 +132,24 @@ def verify_with_marabou(image: np.array, label: int, box, occlusion_size,
     print("vals length", len(vals))
 
     return vals, bound_calculation_time, verify_time
+
+
+def set_implied_constraints(network, inputs, image, box, span_x, span_y):
+    c, h, w = inputs.shape
+    c_i, c_j = box
+    for i in range(h):
+        for j in range(w):
+            if i < c_i + span_y and i > c_i - span_y and j < c_j + span_x and j > c_j - span_x:
+               continue
+            for channel in range(c):
+                eq1 = MarabouCore.Equation(MarabouCore.Equation.GE)
+                eq1.addAddend(1, inputs[channel][c_i][c_j])
+                eq1.setScalar(image[c_i][c_j][channel])
+                eq2 = MarabouCore.Equation(MarabouCore.Equation.EQ)
+                eq2.addAddend(1, inputs[channel][i][j])
+                eq2.setScalar(image[i][j][channel])
+                disjunction = [[eq1], [eq2]]
+                network.addDisjunctionConstraint(disjunction)
 
 
 # test with some fixed upper and lower bounds
@@ -223,9 +250,10 @@ if __name__ == '__main__':
                 break
         # pack vals, bound_calculation_time, verify_time into a dict and append it to results
         total_time = time.monotonic() - start_time
+        # todo add adversarial example to result file
         results.append(
             {'robust': isRobust, 'total_verify_time': total_time,
-             'true_label:': label, 'predicted_label': predicted_label, 'adversarial_example': adversarial_example.tolist(),
+             'true_label:': label, 'predicted_label': predicted_label,
              'origin_image': image.tolist(), 'detail': results_batch})
 
     # save results to file
