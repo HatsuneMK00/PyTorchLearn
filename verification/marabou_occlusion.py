@@ -112,11 +112,12 @@ def verify_with_marabou(image: np.array, label: int, box, occlusion_size,
     # set extra n^2 imply constraints to tighten the bounds
     # ------------------------------------------------------------------------------------------
     # iterate over the inputs
-    span_x = w_o + 1
-    span_y = h_o + 1
-    for i in range(h):
-        for j in range(w):
-            set_implied_constraints(network, inputs, image, (i, j), span_x, span_y)
+    # span_x = w_o + 1
+    # span_y = h_o + 1
+    # for i in range(h):
+    #     for j in range(w):
+    #         set_implied_constraints(network, inputs, image, (i, j), span_x, span_y)
+
     # ------------------------------------------------------------------------------------------
     # set bounds for network output
     # ------------------------------------------------------------------------------------------
