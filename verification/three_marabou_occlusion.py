@@ -22,9 +22,10 @@ model_name = "fnn_model_gtsrb_small.onnx"
 occlusion_size = (1, 1)
 occlusion_color = 0
 input_size = (32, 32)
+channel = 3
 output_dim = 7
 batch_num = 1
-result_file_dir = '../experiment/results/'
+result_file_dir = '../experiment/results/thought_3/'
 timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime(time.time()))
 
 
@@ -186,17 +187,48 @@ if __name__ == '__main__':
     img_loader = get_test_images_loader(input_size, output_dim=output_dim)
     iterable_img_loader = iter(img_loader)
 
+    results = []
     for i in range(batch_num):
+        start_time = time.monotonic()
         image, label = iterable_img_loader.next()
         image = image.numpy()
         label = label.item()
-
+        isRobust = True
+        constraints_calculation_time = -1.0
+        verify_time = -1.0
+        predicted_label = -1
+        results_batch = []
+        adversarial_example = None
         for target_label in range(output_dim):
             if target_label == label:
                 continue
             vals, constraints_calculation_time, verify_time = verify_occlusion_with_fixed_size(image, label, occlusion_size, occlusion_color)
-            print("vals[0]: ", vals[0])
-            print('constraints_calculation_time: ', constraints_calculation_time)
-            print('verify_time: ', verify_time)
+            results_batch.append(
+                {'vals': vals[0], 'constraints_calculation_time': constraints_calculation_time, 'verify_time': verify_time,
+                 'target_label': target_label})
+            if vals[0] == 'sat':
+                adversarial_example = vals[1]
+                predicted_label = target_label
+                isRobust = False
+                break
+        total_time = time.monotonic() - start_time
+        # unpack adversarial example to a list
+        # adversarial_example is a dict{int, float}
+        # key is the index of the variable in the network
+        # value is the value of the variable
+        adv_example_list = [adversarial_example[i] for i in range(channel * input_size[0] * input_size[1])]
+
+        results.append(
+            {'robust': isRobust, 'total_verify_time': total_time,
+             'true_label:': label, 'predicted_label': predicted_label, 'adv_example': adv_example_list,
+             'origin_image': image.tolist(), 'detail': results_batch})
+
+    # save results to file
+    result_filepath = result_file_dir + f'{model_name}_batchNum_{batch_num}_occlusionSize_{occlusion_size[0]}_{occlusion_size[1]}_occlusionColor_{occlusion_color}_outputDim_{output_dim}.json'
+    with open(result_filepath, 'w') as f:
+        json.dump(results, f)
+        f.write('\n')
+        f.flush()
+
 
 
