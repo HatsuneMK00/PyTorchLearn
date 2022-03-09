@@ -72,16 +72,16 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
             eqs = []
             eq1 = MarabouCore.Equation(MarabouCore.Equation.EQ)
             eq1.addAddend(1, x)
-            eq1.addScalar(j)
+            eq1.setScalar(j)
             eqs.append(eq1)
             eq2 = MarabouCore.Equation(MarabouCore.Equation.EQ)
             eq2.addAddend(1, y)
-            eq2.addScalar(i)
+            eq2.setScalar(i)
             eqs.append(eq2)
             for k in range(c):
                 eq3 = MarabouCore.Equation(MarabouCore.Equation.EQ)
                 eq3.addAddend(1, inputs[k][i][j])
-                eq3.addScalar(occlusion_color)
+                eq3.setScalar(occlusion_color)
                 eqs.append(eq3)
             constraints.append(eqs)
             # otherwise
@@ -92,30 +92,30 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
             for k in range(c):
                 eq8 = MarabouCore.Equation(MarabouCore.Equation.EQ)
                 eq8.addAddend(1, inputs[k][i][j])
-                eq8.addScalar(image[k][i][j])
+                eq8.setScalar(image[k][i][j])
                 eqs.append(eq8)
             eqs_temp = eqs.copy()
             eq4 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq4.addAddend(1, x)
-            eq4.addScalar(j)
+            eq4.setScalar(j)
             eqs.append(eq4)
             constraints.append(eqs)
             eqs = eqs_temp.copy()
             eq5 = MarabouCore.Equation(MarabouCore.Equation.LE)
             eq5.addAddend(1, x)
-            eq5.addScalar(j)
+            eq5.setScalar(j)
             eqs.append(eq5)
             constraints.append(eqs)
             eqs = eqs_temp.copy()
             eq6 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq6.addAddend(1, y)
-            eq6.addScalar(i)
+            eq6.setScalar(i)
             eqs.append(eq6)
             constraints.append(eqs)
             eqs = eqs_temp.copy()
             eq7 = MarabouCore.Equation(MarabouCore.Equation.LE)
             eq7.addAddend(1, y)
-            eq7.addScalar(i)
+            eq7.setScalar(i)
             eqs.append(eq7)
             constraints.append(eqs)
             # add constraints to network
@@ -136,11 +136,10 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
     constraints_calculation_time = constraints_calculation_end_time - constraints_calculation_start_time
 
     verify_start_time = time.monotonic()
-    vals, stats = network.solve(verbose=True)
+    vals = network.solve(verbose=True)
     verify_end_time = time.monotonic()
     verify_time = verify_end_time - verify_start_time
 
-    print("vals: ", vals)
     print("vals length: ", len(vals))
 
     return vals, constraints_calculation_time, verify_time
@@ -196,6 +195,7 @@ if __name__ == '__main__':
             if target_label == label:
                 continue
             vals, constraints_calculation_time, verify_time = verify_occlusion_with_fixed_size(image, label, occlusion_size, occlusion_color)
+            print("vals[0]: ", vals[0])
             print('constraints_calculation_time: ', constraints_calculation_time)
             print('verify_time: ', verify_time)
 
