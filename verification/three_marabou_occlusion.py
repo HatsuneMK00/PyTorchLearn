@@ -28,6 +28,7 @@ batch_num = 1
 result_file_dir = '../experiment/results/thought_3/'
 timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime(time.time()))
 
+mean, std = np.array([0.3337, 0.3064, 0.3171]), np.array([0.2672, 0.2564, 0.2629])
 
 # thought #3 in the doc
 def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size: tuple, occlusion_color: int):
@@ -94,7 +95,7 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
             for k in range(c):
                 eq5 = MarabouCore.Equation(MarabouCore.Equation.EQ)
                 eq5.addAddend(1, inputs[k][i][j])
-                eq5.setScalar(occlusion_color)
+                eq5.setScalar(((occlusion_color / 255.0) - mean[k]) / std[k])
                 eqs.append(eq5)
             constraints.append(eqs)
             # otherwise
@@ -138,12 +139,14 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
             # add constraints to network
             network.addDisjunctionConstraint(constraints)
 
+    lower_bound = (0 - mean) / std
+    upper_bound = (1 - mean) / std
     # add additional bounds for the inputs
     for i in range(h):
         for j in range(w):
             for k in range(c):
-                network.setLowerBound(inputs[k, i, j], 0)
-                network.setUpperBound(inputs[k, i, j], 1)
+                network.setLowerBound(inputs[k, i, j], lower_bound[k])
+                network.setUpperBound(inputs[k, i, j], upper_bound[k])
 
     # add bounds to outputs
     for i in range(n_outputs):
@@ -219,7 +222,7 @@ if __name__ == '__main__':
         for target_label in range(output_dim):
             if target_label == label:
                 continue
-            vals, constraints_calculation_time, verify_time = verify_occlusion_with_fixed_size(image, label, occlusion_size, occlusion_color)
+            vals, constraints_calculation_time, verify_time = verify_occlusion_with_fixed_size(image, target_label, occlusion_size, occlusion_color)
             results_batch.append(
                 {'vals': vals[0], 'constraints_calculation_time': constraints_calculation_time, 'verify_time': verify_time,
                  'target_label': target_label})
@@ -241,7 +244,7 @@ if __name__ == '__main__':
              'origin_image': image.tolist(), 'detail': results_batch})
 
     # save results to file
-    result_filepath = result_file_dir + f'{model_name}_batchNum_{batch_num}_occlusionSize_{occlusion_size[0]}_{occlusion_size[1]}_occlusionColor_{occlusion_color}_outputDim_{output_dim}.json'
+    result_filepath = result_file_dir + f'{model_name}_batchNum_{batch_num}_occlusionSize_{occlusion_size[0]}_{occlusion_size[1]}_occlusionColor_{occlusion_color}_outputDim_{output_dim}_{timestamp}.json'
     with open(result_filepath, 'w') as f:
         json.dump(results, f)
         f.write('\n')
