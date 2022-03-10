@@ -215,6 +215,7 @@ if __name__ == '__main__':
         predicted_label = -1
         results_batch = []
         adversarial_example = None
+        adv_example_list = None
         for target_label in range(output_dim):
             if target_label == label:
                 continue
@@ -224,15 +225,15 @@ if __name__ == '__main__':
                  'target_label': target_label})
             if vals[0] == 'sat':
                 adversarial_example = vals[1]
+                # unpack adversarial example to a list
+                # adversarial_example is a dict{int, float}
+                # key is the index of the variable in the network
+                # value is the value of the variable
+                adv_example_list = [adversarial_example[i] for i in range(channel * input_size[0] * input_size[1])]
                 predicted_label = target_label
                 isRobust = False
                 break
         total_time = time.monotonic() - start_time
-        # unpack adversarial example to a list
-        # adversarial_example is a dict{int, float}
-        # key is the index of the variable in the network
-        # value is the value of the variable
-        adv_example_list = [adversarial_example[i] for i in range(channel * input_size[0] * input_size[1])]
 
         results.append(
             {'robust': isRobust, 'total_verify_time': total_time,
