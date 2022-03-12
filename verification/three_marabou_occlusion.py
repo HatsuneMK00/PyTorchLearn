@@ -38,7 +38,7 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
     network can classify correctly
     :param image: 1*3*32*32 image in np array after normalization
     :param label: int indicates the correct label
-    :param occlusion_size: int indicates the occlusion size
+    :param occlusion_size: tuple indicates the occlusion size
     :param occlusion_color: int indicates the occlusion color
     :return: vals, constraints_calculation_time, verify_time
     """
@@ -61,9 +61,9 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
     x = network.getNewVariable()
     y = network.getNewVariable()
     network.setLowerBound(x, 0)
-    network.setUpperBound(x, w - 1)
+    network.setUpperBound(x, w - occlusion_width)
     network.setLowerBound(y, 0)
-    network.setUpperBound(y, h - 1)
+    network.setUpperBound(y, h - occlusion_height)
 
     # iterate over the entire image
     for i in range(h):
@@ -79,7 +79,7 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
             eqs = []
             eq1 = MarabouCore.Equation(MarabouCore.Equation.LE)
             eq1.addAddend(1, x)
-            eq1.setScalar(j)
+            eq1.setScalar(j + 1)
             eqs.append(eq1)
             eq2 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq2.addAddend(1, x)
@@ -87,7 +87,7 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
             eqs.append(eq2)
             eq3 = MarabouCore.Equation(MarabouCore.Equation.LE)
             eq3.addAddend(1, y)
-            eq3.setScalar(i)
+            eq3.setScalar(i + 1)
             eqs.append(eq3)
             eq4 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq4.addAddend(1, y)
