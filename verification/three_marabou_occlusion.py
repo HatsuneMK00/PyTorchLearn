@@ -29,6 +29,7 @@ result_file_dir = '../experiment/results/thought_3/'
 timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime(time.time()))
 
 mean, std = np.array([0.3337, 0.3064, 0.3171]), np.array([0.2672, 0.2564, 0.2629])
+epsilon = 1e-6
 
 # thought #3 in the doc
 def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size: tuple, occlusion_color: int):
@@ -115,25 +116,25 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
             eqs_temp = eqs.copy()
             eq6 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq6.addAddend(1, x)
-            eq6.setScalar(j)
+            eq6.setScalar(j + epsilon)
             eqs.append(eq6)
             constraints.append(eqs)
             eqs = eqs_temp.copy()
             eq7 = MarabouCore.Equation(MarabouCore.Equation.LE)
             eq7.addAddend(1, x)
-            eq7.setScalar(j - occlusion_width + 1)
+            eq7.setScalar(j - occlusion_width + 1 - epsilon)
             eqs.append(eq7)
             constraints.append(eqs)
             eqs = eqs_temp.copy()
             eq8 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq8.addAddend(1, y)
-            eq8.setScalar(i)
+            eq8.setScalar(i + epsilon)
             eqs.append(eq8)
             constraints.append(eqs)
             eqs = eqs_temp.copy()
             eq9 = MarabouCore.Equation(MarabouCore.Equation.LE)
             eq9.addAddend(1, y)
-            eq9.setScalar(i - occlusion_height + 1)
+            eq9.setScalar(i - occlusion_height + 1 - epsilon)
             eqs.append(eq9)
             constraints.append(eqs)
             # add constraints to network
