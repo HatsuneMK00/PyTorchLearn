@@ -32,11 +32,10 @@ mean, std = np.array([0.3337, 0.3064, 0.3171]), np.array([0.2672, 0.2564, 0.2629
 epsilon = 1e-6
 
 # thought #3 in the doc
-def verify_occlusion_with_fixed_size(network, image: np.array, label: int, occlusion_size: tuple, occlusion_color: int):
+def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size: tuple, occlusion_color: int):
     """
     given an image, label, occlusion size and occlusion color, verify that no matter where the occlusion area is
     network can classify correctly
-    :param network: the network of MarabouNetwork type
     :param image: 1*3*32*32 image in np array after normalization
     :param label: int indicates the correct label
     :param occlusion_size: tuple indicates the occlusion size
@@ -44,8 +43,8 @@ def verify_occlusion_with_fixed_size(network, image: np.array, label: int, occlu
     :return: vals, constraints_calculation_time, verify_time
     """
     constraints_calculation_start_time = time.monotonic()
-    # clear network
-    network.clear()
+    # load network
+    network = load_network(model_name)
     inputs = network.inputVars[0][0] # 3*32*32
     outputs = network.outputVars[0] # {output_dim}
     n_outputs = outputs.flatten().shape[0]
@@ -212,9 +211,6 @@ if __name__ == '__main__':
     img_loader = get_test_images_loader(input_size, output_dim=output_dim)
     iterable_img_loader = iter(img_loader)
 
-    # load the network
-    network = load_network(model_name)
-
     results = []
     for i in range(batch_num):
         start_time = time.monotonic()
@@ -231,7 +227,7 @@ if __name__ == '__main__':
         for target_label in range(output_dim):
             if target_label == label:
                 continue
-            vals, constraints_calculation_time, verify_time = verify_occlusion_with_fixed_size(network, image, target_label, occlusion_size, occlusion_color)
+            vals, constraints_calculation_time, verify_time = verify_occlusion_with_fixed_size(image, target_label, occlusion_size, occlusion_color)
             results_batch.append(
                 {'vals': vals[0], 'constraints_calculation_time': constraints_calculation_time, 'verify_time': verify_time,
                  'target_label': target_label})
