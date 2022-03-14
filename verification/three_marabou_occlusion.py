@@ -19,7 +19,7 @@ from occlusion_bound import calculate_entire_bounds
 
 # define some global variables
 model_name = "fnn_model_gtsrb_small.onnx"
-occlusion_size = (1, 1)
+occlusion_size = (32, 32)
 occlusion_color = 0
 input_size = (32, 32)
 channel = 3
@@ -79,19 +79,19 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
             eqs = []
             eq1 = MarabouCore.Equation(MarabouCore.Equation.LE)
             eq1.addAddend(1, x)
-            eq1.setScalar(j + 1)
+            eq1.setScalar(min(j + 1, w))
             eqs.append(eq1)
             eq2 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq2.addAddend(1, x)
-            eq2.setScalar(j - occlusion_width + 1)
+            eq2.setScalar(max(j - occlusion_width + 1, 0))
             eqs.append(eq2)
             eq3 = MarabouCore.Equation(MarabouCore.Equation.LE)
             eq3.addAddend(1, y)
-            eq3.setScalar(i + 1)
+            eq3.setScalar(min(i + 1, h))
             eqs.append(eq3)
             eq4 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq4.addAddend(1, y)
-            eq4.setScalar(i - occlusion_height + 1)
+            eq4.setScalar(max(i - occlusion_height + 1, 0))
             eqs.append(eq4)
             for k in range(c):
                 eq5 = MarabouCore.Equation(MarabouCore.Equation.EQ)
@@ -117,26 +117,30 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
             eq6 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq6.addAddend(1, x)
             eq6.setScalar(j + 1 + epsilon)
-            eqs.append(eq6)
-            constraints.append(eqs)
+            if (j + 1 + epsilon) <= w:
+                eqs.append(eq6)
+                constraints.append(eqs)
             eqs = eqs_temp.copy()
             eq7 = MarabouCore.Equation(MarabouCore.Equation.LE)
             eq7.addAddend(1, x)
             eq7.setScalar(j - occlusion_width + 1 - epsilon)
-            eqs.append(eq7)
-            constraints.append(eqs)
+            if (j - occlusion_width + 1 - epsilon) >= 0:
+                eqs.append(eq7)
+                constraints.append(eqs)
             eqs = eqs_temp.copy()
             eq8 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq8.addAddend(1, y)
             eq8.setScalar(i + 1 + epsilon)
-            eqs.append(eq8)
-            constraints.append(eqs)
+            if (i + 1 + epsilon) <= h:
+                eqs.append(eq8)
+                constraints.append(eqs)
             eqs = eqs_temp.copy()
             eq9 = MarabouCore.Equation(MarabouCore.Equation.LE)
             eq9.addAddend(1, y)
             eq9.setScalar(i - occlusion_height + 1 - epsilon)
-            eqs.append(eq9)
-            constraints.append(eqs)
+            if (i - occlusion_height + 1 - epsilon) >= 0:
+                eqs.append(eq9)
+                constraints.append(eqs)
             # add constraints to network
             network.addDisjunctionConstraint(constraints)
 
@@ -244,12 +248,12 @@ if __name__ == '__main__':
              'true_label:': label, 'predicted_label': predicted_label, 'adv_example': adv_example_list,
              'origin_image': image.tolist(), 'detail': results_batch})
 
-    # save results to file
-    result_filepath = result_file_dir + f'{model_name}_batchNum_{batch_num}_occlusionSize_{occlusion_size[0]}_{occlusion_size[1]}_occlusionColor_{occlusion_color}_outputDim_{output_dim}_{timestamp}.json'
-    with open(result_filepath, 'w') as f:
-        json.dump(results, f)
-        f.write('\n')
-        f.flush()
+        # save results to file
+        result_filepath = result_file_dir + f'{model_name}_batchNum_{batch_num}_occlusionSize_{occlusion_size[0]}_{occlusion_size[1]}_occlusionColor_{occlusion_color}_outputDim_{output_dim}_{timestamp}.json'
+        with open(result_filepath, 'w') as f:
+            json.dump(results, f)
+            f.write('\n')
+            f.flush()
 
 
 
