@@ -79,7 +79,7 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
             eqs = []
             eq1 = MarabouCore.Equation(MarabouCore.Equation.LE)
             eq1.addAddend(1, x)
-            eq1.setScalar(min(j + 1, w))
+            eq1.setScalar(min(j + 1 - epsilon, w))
             eqs.append(eq1)
             eq2 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq2.addAddend(1, x)
@@ -87,7 +87,7 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
             eqs.append(eq2)
             eq3 = MarabouCore.Equation(MarabouCore.Equation.LE)
             eq3.addAddend(1, y)
-            eq3.setScalar(min(i + 1, h))
+            eq3.setScalar(min(i + 1 - epsilon, h))
             eqs.append(eq3)
             eq4 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq4.addAddend(1, y)
@@ -116,7 +116,7 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
             eqs_temp = eqs.copy()
             eq6 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq6.addAddend(1, x)
-            eq6.setScalar(j + 1 + epsilon)
+            eq6.setScalar(j + 1)
             if (j + 1 + epsilon) <= w:
                 eqs.append(eq6)
                 constraints.append(eqs)
@@ -130,7 +130,7 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
             eqs = eqs_temp.copy()
             eq8 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq8.addAddend(1, y)
-            eq8.setScalar(i + 1 + epsilon)
+            eq8.setScalar(i + 1)
             if (i + 1 + epsilon) <= h:
                 eqs.append(eq8)
                 constraints.append(eqs)
