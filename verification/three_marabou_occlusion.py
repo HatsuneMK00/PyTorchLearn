@@ -56,8 +56,6 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
     c, h, w = image.shape
     occlusion_height, occlusion_width = occlusion_size
 
-    options = Marabou.createOptions(snc=True, initialDivides=2)
-
     # define the constraints on the entire image
     # constraints = calculate_constrains(image, inputs)
     x = network.getNewVariable()
@@ -163,7 +161,7 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
     constraints_calculation_time = constraints_calculation_end_time - constraints_calculation_start_time
 
     verify_start_time = time.monotonic()
-    vals = network.solve(options=options)
+    vals = network.solve(verbose=True)
     verify_end_time = time.monotonic()
     verify_time = verify_end_time - verify_start_time
 
