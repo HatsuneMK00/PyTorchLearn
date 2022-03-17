@@ -61,9 +61,9 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
     x = network.getNewVariable()
     y = network.getNewVariable()
     network.setLowerBound(x, 0)
-    network.setUpperBound(x, w - occlusion_width - 1)
+    network.setUpperBound(x, w - occlusion_width)
     network.setLowerBound(y, 0)
-    network.setUpperBound(y, h - occlusion_height - 1)
+    network.setUpperBound(y, h - occlusion_height)
 
     # iterate over the entire image
     for i in range(h):
@@ -79,7 +79,7 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
             eqs = []
             eq1 = MarabouCore.Equation(MarabouCore.Equation.LE)
             eq1.addAddend(1, x)
-            eq1.setScalar(min(j + 1 - epsilon, w - 1))
+            eq1.setScalar(min(j + 1 - epsilon, w - occlusion_width))
             eqs.append(eq1)
             eq2 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq2.addAddend(1, x)
@@ -87,7 +87,7 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
             eqs.append(eq2)
             eq3 = MarabouCore.Equation(MarabouCore.Equation.LE)
             eq3.addAddend(1, y)
-            eq3.setScalar(min(i + 1 - epsilon, h - 1))
+            eq3.setScalar(min(i + 1 - epsilon, h - occlusion_height))
             eqs.append(eq3)
             eq4 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq4.addAddend(1, y)
@@ -117,7 +117,7 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
             eq6 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq6.addAddend(1, x)
             eq6.setScalar(j + 1)
-            if (j + 1) < w:
+            if (j + 1) <= w - occlusion_width:
                 eqs.append(eq6)
                 constraints.append(eqs)
             eqs = eqs_temp.copy()
@@ -131,7 +131,7 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
             eq8 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq8.addAddend(1, y)
             eq8.setScalar(i + 1)
-            if (i + 1) < h:
+            if (i + 1) <= h - occlusion_height:
                 eqs.append(eq8)
                 constraints.append(eqs)
             eqs = eqs_temp.copy()
