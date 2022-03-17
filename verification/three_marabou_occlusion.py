@@ -61,9 +61,9 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
     x = network.getNewVariable()
     y = network.getNewVariable()
     network.setLowerBound(x, 0)
-    network.setUpperBound(x, w - occlusion_width)
+    network.setUpperBound(x, w - occlusion_width - 1)
     network.setLowerBound(y, 0)
-    network.setUpperBound(y, h - occlusion_height)
+    network.setUpperBound(y, h - occlusion_height - 1)
 
     # iterate over the entire image
     for i in range(h):
@@ -79,7 +79,7 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
             eqs = []
             eq1 = MarabouCore.Equation(MarabouCore.Equation.LE)
             eq1.addAddend(1, x)
-            eq1.setScalar(min(j + 1 - epsilon, w))
+            eq1.setScalar(min(j + 1 - epsilon, w - 1))
             eqs.append(eq1)
             eq2 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq2.addAddend(1, x)
@@ -87,7 +87,7 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
             eqs.append(eq2)
             eq3 = MarabouCore.Equation(MarabouCore.Equation.LE)
             eq3.addAddend(1, y)
-            eq3.setScalar(min(i + 1 - epsilon, h))
+            eq3.setScalar(min(i + 1 - epsilon, h - 1))
             eqs.append(eq3)
             eq4 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq4.addAddend(1, y)
@@ -117,28 +117,28 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
             eq6 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq6.addAddend(1, x)
             eq6.setScalar(j + 1)
-            if (j + 1 + epsilon) <= w:
+            if (j + 1) < w:
                 eqs.append(eq6)
                 constraints.append(eqs)
             eqs = eqs_temp.copy()
             eq7 = MarabouCore.Equation(MarabouCore.Equation.LE)
             eq7.addAddend(1, x)
             eq7.setScalar(j - occlusion_width + 1 - epsilon)
-            if (j - occlusion_width + 1 - epsilon) >= 0:
+            if (j - occlusion_width + 1) > 0:
                 eqs.append(eq7)
                 constraints.append(eqs)
             eqs = eqs_temp.copy()
             eq8 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq8.addAddend(1, y)
             eq8.setScalar(i + 1)
-            if (i + 1 + epsilon) <= h:
+            if (i + 1) < h:
                 eqs.append(eq8)
                 constraints.append(eqs)
             eqs = eqs_temp.copy()
             eq9 = MarabouCore.Equation(MarabouCore.Equation.LE)
             eq9.addAddend(1, y)
             eq9.setScalar(i - occlusion_height + 1 - epsilon)
-            if (i - occlusion_height + 1 - epsilon) >= 0:
+            if (i - occlusion_height + 1) > 0:
                 eqs.append(eq9)
                 constraints.append(eqs)
             # add constraints to network
