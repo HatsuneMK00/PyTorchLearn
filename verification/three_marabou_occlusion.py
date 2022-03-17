@@ -21,7 +21,7 @@ from interpolation import occlusion
 
 # define some global variables
 model_name = "fnn_model_gtsrb_small.onnx"
-occlusion_size = (10, 10)
+occlusion_size = (25, 25)
 occlusion_color = 0
 input_size = (32, 32)
 channel = 3
@@ -169,7 +169,8 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
 
     verify_start_time = time.monotonic()
     print("verify start: current label: ", label, flush=True)
-    vals = network.solve(verbose=True)
+    options = Marabou.createOptions(solveWithMILP=True)
+    vals = network.solve(verbose=True, options=options)
     verify_end_time = time.monotonic()
     verify_time = verify_end_time - verify_start_time
 
