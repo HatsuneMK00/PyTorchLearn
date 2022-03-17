@@ -19,7 +19,7 @@ from occlusion_bound import calculate_entire_bounds
 
 # define some global variables
 model_name = "fnn_model_gtsrb_small.onnx"
-occlusion_size = (32, 32)
+occlusion_size = (10, 10)
 occlusion_color = 0
 input_size = (32, 32)
 channel = 3
@@ -161,11 +161,12 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
     constraints_calculation_time = constraints_calculation_end_time - constraints_calculation_start_time
 
     verify_start_time = time.monotonic()
+    print("verify start: current label: ", label, flush=True)
     vals = network.solve(verbose=True)
     verify_end_time = time.monotonic()
     verify_time = verify_end_time - verify_start_time
 
-    print("vals length: ", len(vals))
+    print("vals length: ", len(vals), flush=True)
 
     return vals, constraints_calculation_time, verify_time
 
