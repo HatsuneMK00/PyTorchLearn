@@ -66,87 +66,87 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
     network.setUpperBound(y, h - occlusion_height)
 
     # iterate over the entire image
-    # for i in range(h):
-    #     for j in range(w):
-    #         # occlusion point cover (i, j)
-    #         # the constraints should have size like [[eq1, eq2], [eq3, eq4], ...]
-    #         # stand for (eq1 and eq2) or (eq3 and eq4) or ...
-    #         # network.addDisjunctionConstraint(constraints)
-    #         constraints = []
-    #         # this equation is like (x <= j) and (x >= j - occlusion_size[0] - 1) and (y <= i) and
-    #         # (y >= i - occlusion_size[1] - 1) and (image[i, j] == occlusion_color)
-    #         # with the simple occlusion_size = (1, 1), inequality becomes equality
-    #         eqs = []
-    #         eq1 = MarabouCore.Equation(MarabouCore.Equation.LE)
-    #         eq1.addAddend(1, x)
-    #         eq1.setScalar(j + 1 - epsilon)
-    #         if j + 1 - epsilon < w - occlusion_width:
-    #             eqs.append(eq1)
-    #         eq2 = MarabouCore.Equation(MarabouCore.Equation.GE)
-    #         eq2.addAddend(1, x)
-    #         eq2.setScalar(j - occlusion_width + 1)
-    #         if j - occlusion_width + 1 > 0:
-    #             eqs.append(eq2)
-    #         eq3 = MarabouCore.Equation(MarabouCore.Equation.LE)
-    #         eq3.addAddend(1, y)
-    #         eq3.setScalar(i + 1 - epsilon)
-    #         if i + 1 - epsilon < h - occlusion_height:
-    #             eqs.append(eq3)
-    #         eq4 = MarabouCore.Equation(MarabouCore.Equation.GE)
-    #         eq4.addAddend(1, y)
-    #         eq4.setScalar(i - occlusion_height + 1)
-    #         if i - occlusion_height + 1 > 0:
-    #             eqs.append(eq4)
-    #         for k in range(c):
-    #             eq5 = MarabouCore.Equation(MarabouCore.Equation.EQ)
-    #             eq5.addAddend(1, inputs[k][i][j])
-    #             eq5.setScalar(((occlusion_color / 255.0) - mean[k]) / std[k])
-    #             eqs.append(eq5)
-    #         constraints.append(eqs)
-    #         # otherwise
-    #         # since don't know how to write unequal constraints
-    #         # change two unequal constraints into four greater equal and less equal constraints
-    #         # and also don't know if there exists greater and less relation
-    #         # this equation is like (x >= j) and image[i, j] == origin_color
-    #         # this has four similar constraints connecting with or relation
-    #         # the other three has the same second part and the first part is separately
-    #         # (x <= j - occlusion_size[0] - 1) and (j >= i) and (y <= i - occlusion_size[1] - 1)
-    #         eqs = []
-    #         for k in range(c):
-    #             eq10 = MarabouCore.Equation(MarabouCore.Equation.EQ)
-    #             eq10.addAddend(1, inputs[k][i][j])
-    #             eq10.setScalar(image[k][i][j])
-    #             eqs.append(eq10)
-    #         eqs_temp = eqs.copy()
-    #         eq6 = MarabouCore.Equation(MarabouCore.Equation.GE)
-    #         eq6.addAddend(1, x)
-    #         eq6.setScalar(j + 1)
-    #         if (j + 1) <= w - occlusion_width:
-    #             eqs.append(eq6)
-    #             constraints.append(eqs)
-    #         eqs = eqs_temp.copy()
-    #         eq7 = MarabouCore.Equation(MarabouCore.Equation.LE)
-    #         eq7.addAddend(1, x)
-    #         eq7.setScalar(j - occlusion_width + 1 - epsilon)
-    #         if (j - occlusion_width + 1) > 0:
-    #             eqs.append(eq7)
-    #             constraints.append(eqs)
-    #         eqs = eqs_temp.copy()
-    #         eq8 = MarabouCore.Equation(MarabouCore.Equation.GE)
-    #         eq8.addAddend(1, y)
-    #         eq8.setScalar(i + 1)
-    #         if (i + 1) <= h - occlusion_height:
-    #             eqs.append(eq8)
-    #             constraints.append(eqs)
-    #         eqs = eqs_temp.copy()
-    #         eq9 = MarabouCore.Equation(MarabouCore.Equation.LE)
-    #         eq9.addAddend(1, y)
-    #         eq9.setScalar(i - occlusion_height + 1 - epsilon)
-    #         if (i - occlusion_height + 1) > 0:
-    #             eqs.append(eq9)
-    #             constraints.append(eqs)
-    #         # add constraints to network
-    #         network.addDisjunctionConstraint(constraints)
+    for i in range(h):
+        for j in range(w):
+            # occlusion point cover (i, j)
+            # the constraints should have size like [[eq1, eq2], [eq3, eq4], ...]
+            # stand for (eq1 and eq2) or (eq3 and eq4) or ...
+            # network.addDisjunctionConstraint(constraints)
+            constraints = []
+            # this equation is like (x <= j) and (x >= j - occlusion_size[0] - 1) and (y <= i) and
+            # (y >= i - occlusion_size[1] - 1) and (image[i, j] == occlusion_color)
+            # with the simple occlusion_size = (1, 1), inequality becomes equality
+            eqs = []
+            eq1 = MarabouCore.Equation(MarabouCore.Equation.LE)
+            eq1.addAddend(1, x)
+            eq1.setScalar(j + 1 - epsilon)
+            if j + 1 - epsilon < w - occlusion_width:
+                eqs.append(eq1)
+            eq2 = MarabouCore.Equation(MarabouCore.Equation.GE)
+            eq2.addAddend(1, x)
+            eq2.setScalar(j - occlusion_width + 1)
+            if j - occlusion_width + 1 > 0:
+                eqs.append(eq2)
+            eq3 = MarabouCore.Equation(MarabouCore.Equation.LE)
+            eq3.addAddend(1, y)
+            eq3.setScalar(i + 1 - epsilon)
+            if i + 1 - epsilon < h - occlusion_height:
+                eqs.append(eq3)
+            eq4 = MarabouCore.Equation(MarabouCore.Equation.GE)
+            eq4.addAddend(1, y)
+            eq4.setScalar(i - occlusion_height + 1)
+            if i - occlusion_height + 1 > 0:
+                eqs.append(eq4)
+            for k in range(c):
+                eq5 = MarabouCore.Equation(MarabouCore.Equation.EQ)
+                eq5.addAddend(1, inputs[k][i][j])
+                eq5.setScalar(((occlusion_color / 255.0) - mean[k]) / std[k])
+                eqs.append(eq5)
+            constraints.append(eqs)
+            # otherwise
+            # since don't know how to write unequal constraints
+            # change two unequal constraints into four greater equal and less equal constraints
+            # and also don't know if there exists greater and less relation
+            # this equation is like (x >= j) and image[i, j] == origin_color
+            # this has four similar constraints connecting with or relation
+            # the other three has the same second part and the first part is separately
+            # (x <= j - occlusion_size[0] - 1) and (j >= i) and (y <= i - occlusion_size[1] - 1)
+            eqs = []
+            for k in range(c):
+                eq10 = MarabouCore.Equation(MarabouCore.Equation.EQ)
+                eq10.addAddend(1, inputs[k][i][j])
+                eq10.setScalar(image[k][i][j])
+                eqs.append(eq10)
+            eqs_temp = eqs.copy()
+            eq6 = MarabouCore.Equation(MarabouCore.Equation.GE)
+            eq6.addAddend(1, x)
+            eq6.setScalar(j + 1)
+            if (j + 1) <= w - occlusion_width:
+                eqs.append(eq6)
+                constraints.append(eqs)
+            eqs = eqs_temp.copy()
+            eq7 = MarabouCore.Equation(MarabouCore.Equation.LE)
+            eq7.addAddend(1, x)
+            eq7.setScalar(j - occlusion_width + 1 - epsilon)
+            if (j - occlusion_width + 1) > 0:
+                eqs.append(eq7)
+                constraints.append(eqs)
+            eqs = eqs_temp.copy()
+            eq8 = MarabouCore.Equation(MarabouCore.Equation.GE)
+            eq8.addAddend(1, y)
+            eq8.setScalar(i + 1)
+            if (i + 1) <= h - occlusion_height:
+                eqs.append(eq8)
+                constraints.append(eqs)
+            eqs = eqs_temp.copy()
+            eq9 = MarabouCore.Equation(MarabouCore.Equation.LE)
+            eq9.addAddend(1, y)
+            eq9.setScalar(i - occlusion_height + 1 - epsilon)
+            if (i - occlusion_height + 1) > 0:
+                eqs.append(eq9)
+                constraints.append(eqs)
+            # add constraints to network
+            network.addDisjunctionConstraint(constraints)
 
     lower_bound = (0 - mean) / std
     upper_bound = (1 - mean) / std
