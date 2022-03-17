@@ -12,10 +12,12 @@ import onnxruntime
 from maraboupy import Marabou, MarabouNetwork, MarabouCore
 from PIL import Image
 import numpy as np
+import torch
 import time
 
 from marabou_utils import load_network, load_sample_image, get_test_images_loader
 from occlusion_bound import calculate_entire_bounds
+from interpolation import occlusion
 
 # define some global variables
 model_name = "fnn_model_gtsrb_small.onnx"
@@ -27,6 +29,7 @@ output_dim = 7
 batch_num = 1
 result_file_dir = '../experiment/results/thought_3/'
 timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime(time.time()))
+use_marabou = False
 
 mean, std = np.array([0.3337, 0.3064, 0.3171]), np.array([0.2672, 0.2564, 0.2629])
 epsilon = 1e-6
@@ -175,6 +178,51 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
     return vals, constraints_calculation_time, verify_time
 
 
+def traverse_occlusion_with_fixed_size_by_onnx(image, label, occlusion_size, occlusion_color):
+    """
+    Use onnxruntime to traversal all possible image with given occlusion size as a benchmark for verification
+    :param image: 1*3*32*32 image in np array after normalization with resize and normalization
+    :param label: int indicates the correct label
+    :param occlusion_size: tuple indicates the occlusion size
+    :param occlusion_color: int indicates the occlusion color
+    :return: robust, traversal_time
+    """
+    start_time = time.monotonic()
+    robust = True
+    image = image[0].transpose(1, 2, 0)
+    h, w, c = image.shape
+    # denormalize the image with given mean and std
+    image = (image * std + np.array((0.3337, 0.3064, 0.3171))) * 255
+    # load onnx model
+    onnx_model_path = "../model/" + model_name
+    onnx_model = onnx.load(onnx_model_path)
+    # create the onnxruntime session
+    ort_session = onnxruntime.InferenceSession(onnx_model_path)
+    # create the input tensor
+    input_name = ort_session.get_inputs()[0].name
+    # iterate on the whole image
+    for i in range(h - occlusion_size[0]):
+        for j in range(w - occlusion_size[1]):
+            occluded_image = occlusion.occlusion_with_interpolation(image, (i, j), occlusion_size, occlusion_color)
+            occluded_image = np.clip(occluded_image, 0, 255).astype(np.uint8)
+            # normalize image
+            occluded_image = (occluded_image / 255 - mean) / std
+            occluded_image = occluded_image.transpose(2, 0, 1)
+            occluded_image = occluded_image.resize(1, 3, 32, 32)
+            input_tensor = occluded_image
+            # run the model
+            output_tensor = ort_session.run(None,
+                                            {input_name: input_tensor})  # the torch_out is 1 * batch_size * output_dim
+            output_tensor = torch.tensor(output_tensor[0])
+            _, predicted = torch.max(output_tensor, 1)
+            if predicted[0] != label:
+                robust = False
+                break
+        if not robust:
+            break
+    return robust, time.monotonic() - start_time
+
+
 def calculate_constrains(image, inputs):
     """
     calculate the constraints for the entire image
@@ -215,6 +263,14 @@ def calculate_constrains(image, inputs):
 if __name__ == '__main__':
     img_loader = get_test_images_loader(input_size, output_dim=output_dim)
     iterable_img_loader = iter(img_loader)
+
+    if not use_marabou:
+        for i in range(batch_num):
+            image, label = next(iterable_img_loader)
+            robust, total_time = traverse_occlusion_with_fixed_size_by_onnx(image, label, occlusion_size, occlusion_color)
+            print("total time: ", total_time)
+            print("robust: ", robust)
+        exit(0)
 
     results = []
     for i in range(batch_num):

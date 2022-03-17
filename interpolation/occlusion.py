@@ -60,7 +60,7 @@ def regular_occlusion(img, box, occlusion_size, occlusion_color):
 # the occlusion has non-integer upper left corner and integer height and width
 def occlusion_with_interpolation(img, box, occlusion_size, occlusion_color):
     """
-    :param img:     np array
+    :param img:     np array 32*32*3
     :param box:     A 2-tuple which is treated as the upper left corner of occlusion
     :param occlusion_size: A 2-tuple which is treated as (height, width) of occlusion
     :param occlusion_color: A integer between 0 and 255 which is treated as the color of occlusion
