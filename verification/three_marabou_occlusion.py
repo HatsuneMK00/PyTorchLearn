@@ -70,7 +70,7 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
         for j in range(w):
             # occlusion point cover (i, j)
             # the constraints should have size like [[eq1, eq2], [eq3, eq4], ...]
-            # stand for (eq1 and eq1) or (eq2 and eq2) or ...
+            # stand for (eq1 and eq2) or (eq3 and eq4) or ...
             # network.addDisjunctionConstraint(constraints)
             constraints = []
             # this equation is like (x <= j) and (x >= j - occlusion_size[0] - 1) and (y <= i) and
@@ -79,20 +79,24 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
             eqs = []
             eq1 = MarabouCore.Equation(MarabouCore.Equation.LE)
             eq1.addAddend(1, x)
-            eq1.setScalar(min(j + 1 - epsilon, w - occlusion_width))
-            eqs.append(eq1)
+            eq1.setScalar(j + 1 - epsilon)
+            if j + 1 - epsilon < w - occlusion_width:
+                eqs.append(eq1)
             eq2 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq2.addAddend(1, x)
-            eq2.setScalar(max(j - occlusion_width + 1, 0))
-            eqs.append(eq2)
+            eq2.setScalar(j - occlusion_width + 1)
+            if j - occlusion_width + 1 > 0:
+                eqs.append(eq2)
             eq3 = MarabouCore.Equation(MarabouCore.Equation.LE)
             eq3.addAddend(1, y)
-            eq3.setScalar(min(i + 1 - epsilon, h - occlusion_height))
-            eqs.append(eq3)
+            eq3.setScalar(i + 1 - epsilon)
+            if i + 1 - epsilon < h - occlusion_height:
+                eqs.append(eq3)
             eq4 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq4.addAddend(1, y)
-            eq4.setScalar(max(i - occlusion_height + 1, 0))
-            eqs.append(eq4)
+            eq4.setScalar(i - occlusion_height + 1)
+            if i - occlusion_height + 1 > 0:
+                eqs.append(eq4)
             for k in range(c):
                 eq5 = MarabouCore.Equation(MarabouCore.Equation.EQ)
                 eq5.addAddend(1, inputs[k][i][j])
