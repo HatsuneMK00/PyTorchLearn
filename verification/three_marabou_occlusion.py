@@ -160,10 +160,22 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
                 network.setLowerBound(inputs[k, i, j], lower_bound[k])
                 network.setUpperBound(inputs[k, i, j], upper_bound[k])
 
-    # add bounds to outputs
-    for i in range(n_outputs):
-        if i != label:
-            network.addInequality([outputs_flattened[i], outputs_flattened[label]], [1, -1], 0)
+    # add bounds to output
+    # new output constraints using disjunction constraints
+    output_constraints = []
+    for i in range(output_dim):
+        if i == label:
+            continue
+        eq = MarabouCore.Equation(MarabouCore.Equation.GE)
+        eq.addAddend(1, outputs[i])
+        eq.addAddend(-1, outputs[label])
+        eq.setScalar(0)
+        output_constraints.append([eq])
+    network.addDisjunctionConstraint(output_constraints)
+    # # origin output constraints
+    # for i in range(n_outputs):
+    #     if i != label:
+    #         network.addInequality([outputs_flattened[i], outputs_flattened[label]], [1, -1], 0)
     constraints_calculation_end_time = time.monotonic()
     constraints_calculation_time = constraints_calculation_end_time - constraints_calculation_start_time
 
@@ -287,29 +299,45 @@ if __name__ == '__main__':
         image = image.numpy()
         label = label.item()
         isRobust = True
-        constraints_calculation_time = -1.0
-        verify_time = -1.0
+        # constraints_calculation_time = -1.0
+        # verify_time = -1.0
         predicted_label = -1
         results_batch = []
         adversarial_example = None
         adv_example_list = None
-        for target_label in range(output_dim):
-            if target_label == label:
-                continue
-            vals, constraints_calculation_time, verify_time = verify_occlusion_with_fixed_size(image, target_label, occlusion_size, occlusion_color)
-            results_batch.append(
-                {'vals': vals[0], 'constraints_calculation_time': constraints_calculation_time, 'verify_time': verify_time,
-                 'target_label': target_label})
-            if vals[0] == 'sat':
-                adversarial_example = vals[1]
-                # unpack adversarial example to a list
-                # adversarial_example is a dict{int, float}
-                # key is the index of the variable in the network
-                # value is the value of the variable
-                adv_example_list = [adversarial_example[i] for i in range(channel * input_size[0] * input_size[1])]
-                predicted_label = target_label
-                isRobust = False
-                break
+        vals, constraints_calculation_time, verify_time = verify_occlusion_with_fixed_size(image, label,
+                                                                                           occlusion_size,
+                                                                                           occlusion_color)
+        results_batch.append(
+            {'vals': vals[0], 'constraints_calculation_time': constraints_calculation_time,
+             'verify_time': verify_time,
+             })
+        if vals[0] == 'sat':
+            adversarial_example = vals[1]
+            # unpack adversarial example to a list
+            # adversarial_example is a dict{int, float}
+            # key is the index of the variable in the network
+            # value is the value of the variable
+            adv_example_list = [adversarial_example[i] for i in range(channel * input_size[0] * input_size[1])]
+            isRobust = False
+            break
+        # for target_label in range(output_dim):
+        #     if target_label == label:
+        #         continue
+        #     vals, constraints_calculation_time, verify_time = verify_occlusion_with_fixed_size(image, target_label, occlusion_size, occlusion_color)
+        #     results_batch.append(
+        #         {'vals': vals[0], 'constraints_calculation_time': constraints_calculation_time, 'verify_time': verify_time,
+        #          'target_label': target_label})
+        #     if vals[0] == 'sat':
+        #         adversarial_example = vals[1]
+        #         # unpack adversarial example to a list
+        #         # adversarial_example is a dict{int, float}
+        #         # key is the index of the variable in the network
+        #         # value is the value of the variable
+        #         adv_example_list = [adversarial_example[i] for i in range(channel * input_size[0] * input_size[1])]
+        #         predicted_label = target_label
+        #         isRobust = False
+        #         break
         total_time = time.monotonic() - start_time
 
         results.append(
