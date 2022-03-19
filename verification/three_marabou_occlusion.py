@@ -320,7 +320,7 @@ if __name__ == '__main__':
             # value is the value of the variable
             adv_example_list = [adversarial_example[i] for i in range(channel * input_size[0] * input_size[1])]
             isRobust = False
-            break
+            # break
         # for target_label in range(output_dim):
         #     if target_label == label:
         #         continue
