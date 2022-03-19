@@ -27,7 +27,7 @@ input_size = (32, 32)
 channel = 3
 output_dim = 7
 batch_num = 1
-result_file_dir = '../experiment/results/thought_3/'
+result_file_dir = '/home/GuoXingWu/occlusion_veri/PyTorchLearn/experiment/results/thought_3/'
 timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime(time.time()))
 use_marabou = True
 
@@ -69,8 +69,8 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
     network.setUpperBound(y, h - occlusion_height)
 
     # iterate over the entire image
-    for i in range(h):
-        for j in range(w):
+    for i in range(32):
+        for j in range(32):
             # occlusion point cover (i, j)
             # the constraints should have size like [[eq1, eq2], [eq3, eq4], ...]
             # stand for (eq1 and eq2) or (eq3 and eq4) or ...
@@ -83,23 +83,23 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
             eq1 = MarabouCore.Equation(MarabouCore.Equation.LE)
             eq1.addAddend(1, x)
             eq1.setScalar(j + 1 - epsilon)
-            # if j + 1 - epsilon < w - occlusion_width:
-            eqs.append(eq1)
+            if j + 1 - epsilon < w - occlusion_width:
+                eqs.append(eq1)
             eq2 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq2.addAddend(1, x)
             eq2.setScalar(j - occlusion_width + 1)
-            # if j - occlusion_width + 1 > 0:
-            eqs.append(eq2)
+            if j - occlusion_width + 1 > 0:
+                eqs.append(eq2)
             eq3 = MarabouCore.Equation(MarabouCore.Equation.LE)
             eq3.addAddend(1, y)
             eq3.setScalar(i + 1 - epsilon)
-            # if i + 1 - epsilon < h - occlusion_height:
-            eqs.append(eq3)
+            if i + 1 - epsilon < h - occlusion_height:
+                eqs.append(eq3)
             eq4 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq4.addAddend(1, y)
             eq4.setScalar(i - occlusion_height + 1)
-            # if i - occlusion_height + 1 > 0:
-            eqs.append(eq4)
+            if i - occlusion_height + 1 > 0:
+                eqs.append(eq4)
             for k in range(c):
                 eq5 = MarabouCore.Equation(MarabouCore.Equation.EQ)
                 eq5.addAddend(1, inputs[k][i][j])
@@ -124,30 +124,30 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
             eq6 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq6.addAddend(1, x)
             eq6.setScalar(j + 1)
-            # if (j + 1) <= w - occlusion_width:
-            eqs.append(eq6)
-            constraints.append(eqs)
+            if (j + 1) <= w - occlusion_width:
+                eqs.append(eq6)
+                constraints.append(eqs)
             eqs = eqs_temp.copy()
             eq7 = MarabouCore.Equation(MarabouCore.Equation.LE)
             eq7.addAddend(1, x)
             eq7.setScalar(j - occlusion_width + 1 - epsilon)
-            # if (j - occlusion_width + 1) > 0:
-            eqs.append(eq7)
-            constraints.append(eqs)
+            if (j - occlusion_width + 1) > 0:
+                eqs.append(eq7)
+                constraints.append(eqs)
             eqs = eqs_temp.copy()
             eq8 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq8.addAddend(1, y)
             eq8.setScalar(i + 1)
-            # if (i + 1) <= h - occlusion_height:
-            eqs.append(eq8)
-            constraints.append(eqs)
+            if (i + 1) <= h - occlusion_height:
+                eqs.append(eq8)
+                constraints.append(eqs)
             eqs = eqs_temp.copy()
             eq9 = MarabouCore.Equation(MarabouCore.Equation.LE)
             eq9.addAddend(1, y)
             eq9.setScalar(i - occlusion_height + 1 - epsilon)
-            # if (i - occlusion_height + 1) > 0:
-            eqs.append(eq9)
-            constraints.append(eqs)
+            if (i - occlusion_height + 1) > 0:
+                eqs.append(eq9)
+                constraints.append(eqs)
             # add constraints to network
             network.addDisjunctionConstraint(constraints)
 
@@ -171,7 +171,7 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
         eq.addAddend(-1, outputs[label])
         eq.setScalar(0)
         output_constraints.append([eq])
-    network.addDisjunctionConstraint(output_constraints)
+    # network.addDisjunctionConstraint(output_constraints)
     # # origin output constraints
     # for i in range(n_outputs):
     #     if i != label:
