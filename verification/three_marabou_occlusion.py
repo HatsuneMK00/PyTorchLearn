@@ -69,8 +69,8 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
     network.setUpperBound(y, h - occlusion_height)
 
     # iterate over the entire image
-    for i in range(32):
-        for j in range(32):
+    for i in range(h):
+        for j in range(w):
             # occlusion point cover (i, j)
             # the constraints should have size like [[eq1, eq2], [eq3, eq4], ...]
             # stand for (eq1 and eq2) or (eq3 and eq4) or ...
@@ -157,8 +157,9 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
     for i in range(h):
         for j in range(w):
             for k in range(c):
-                network.setLowerBound(inputs[k, i, j], lower_bound[k])
-                network.setUpperBound(inputs[k, i, j], upper_bound[k])
+                # must add a small value to avoid constraints conflict issues
+                network.setLowerBound(inputs[k, i, j], lower_bound[k] - 0.001)
+                network.setUpperBound(inputs[k, i, j], upper_bound[k] + 0.001)
 
     # add bounds to output
     # new output constraints using disjunction constraints
@@ -171,7 +172,7 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
         eq.addAddend(-1, outputs[label])
         eq.setScalar(0)
         output_constraints.append([eq])
-    # network.addDisjunctionConstraint(output_constraints)
+    network.addDisjunctionConstraint(output_constraints)
     # # origin output constraints
     # for i in range(n_outputs):
     #     if i != label:
