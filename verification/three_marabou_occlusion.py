@@ -182,7 +182,7 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
 
     verify_start_time = time.monotonic()
     print("verify start: current label: ", label, flush=True)
-    options = Marabou.createOptions(solveWithMILP=True)
+    options = Marabou.createOptions(numWorkers=32, timeoutInSeconds=3600, solveWithMILP=True)
     vals = network.solve(verbose=True, options=options)
     verify_end_time = time.monotonic()
     verify_time = verify_end_time - verify_start_time
@@ -343,7 +343,7 @@ if __name__ == '__main__':
 
         results.append(
             {'robust': isRobust, 'total_verify_time': total_time,
-             'true_label:': label, 'predicted_label': predicted_label, 'adv_example': adv_example_list,
+             'true_label': label, 'predicted_label': predicted_label, 'adv_example': adv_example_list,
              'origin_image': image.tolist(), 'detail': results_batch})
 
         # save results to file
