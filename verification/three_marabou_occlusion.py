@@ -126,20 +126,23 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
             eq1 = MarabouCore.Equation(MarabouCore.Equation.LE)
             eq1.addAddend(1, x)
             eq1.setScalar(j + 1 - epsilon)
-            # fixme can add if statement to avoid adding useless equation
-            eqs.append(eq1)
+            if j + 1 - epsilon < block_size[1] - occlusion_width + width_offset:
+                eqs.append(eq1)
             eq2 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq2.addAddend(1, x)
             eq2.setScalar(j - occlusion_width + 1)
-            eqs.append(eq2)
+            if j - occlusion_width + 1 > max(0, width_offset - occlusion_width + 1):
+                eqs.append(eq2)
             eq3 = MarabouCore.Equation(MarabouCore.Equation.LE)
             eq3.addAddend(1, y)
             eq3.setScalar(i + 1 - epsilon)
-            eqs.append(eq3)
+            if i + 1 - epsilon < block_size[0] - occlusion_height + height_offset:
+                eqs.append(eq3)
             eq4 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq4.addAddend(1, y)
             eq4.setScalar(i - occlusion_height + 1)
-            eqs.append(eq4)
+            if i - occlusion_height + 1 > max(0, height_offset - occlusion_height + 1):
+                eqs.append(eq4)
             for k in range(c):
                 eq5 = MarabouCore.Equation(MarabouCore.Equation.EQ)
                 eq5.addAddend(1, inputs[k][i][j])
@@ -164,27 +167,30 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
             eq6 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq6.addAddend(1, x)
             eq6.setScalar(j + 1)
-            # fixme can add if statement to avoid adding useless equation
-            eqs.append(eq6)
-            constraints.append(eqs)
+            if (j + 1) <= block_size[1] - occlusion_width + width_offset:
+                eqs.append(eq6)
+                constraints.append(eqs)
             eqs = eqs_temp.copy()
             eq7 = MarabouCore.Equation(MarabouCore.Equation.LE)
             eq7.addAddend(1, x)
             eq7.setScalar(j - occlusion_width + 1 - epsilon)
-            eqs.append(eq7)
-            constraints.append(eqs)
+            if (j - occlusion_width + 1) > max(0, width_offset - occlusion_width + 1):
+                eqs.append(eq7)
+                constraints.append(eqs)
             eqs = eqs_temp.copy()
             eq8 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq8.addAddend(1, y)
             eq8.setScalar(i + 1)
-            eqs.append(eq8)
-            constraints.append(eqs)
+            if (i + 1) <= block_size[0] - occlusion_height + height_offset:
+                eqs.append(eq8)
+                constraints.append(eqs)
             eqs = eqs_temp.copy()
             eq9 = MarabouCore.Equation(MarabouCore.Equation.LE)
             eq9.addAddend(1, y)
             eq9.setScalar(i - occlusion_height + 1 - epsilon)
-            eqs.append(eq9)
-            constraints.append(eqs)
+            if (i - occlusion_height + 1) > max(0, height_offset - occlusion_height + 1):
+                eqs.append(eq9)
+                constraints.append(eqs)
             # add constraints to network
             network.addDisjunctionConstraint(constraints)
 
