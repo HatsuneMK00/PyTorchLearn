@@ -21,7 +21,7 @@ from interpolation import occlusion
 
 # define some global variables
 model_name = "fnn_model_gtsrb_small.onnx"
-occlusion_size = (2, 2)
+occlusion_size = (5, 5)
 occlusion_color = 0
 input_size = (32, 32)
 channel = 3
@@ -96,7 +96,7 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
     assert image.shape == inputs.shape
     assert n_outputs == output_dim
 
-    c, h, w = image.shape
+    c, h, w = image.shape[0]
     occlusion_height, occlusion_width = occlusion_size
 
     # define the constraints on the entire image
@@ -105,10 +105,10 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
     y = network.getNewVariable()
     network.setLowerBound(x, max(0, width_offset - occlusion_width + 1))
     # fixme this may be larger than current value
-    network.setUpperBound(x, w - occlusion_width + width_offset)
+    network.setUpperBound(x, block_size[1] - occlusion_width + width_offset)
     network.setLowerBound(y, max(0, height_offset - occlusion_height + 1))
     # fixme this may be larger than current value
-    network.setUpperBound(y, h - occlusion_height + height_offset)
+    network.setUpperBound(y, block_size[0] - occlusion_height + height_offset)
     print(f'x: [{max(0, width_offset - occlusion_width + 1)}, {w - occlusion_width + width_offset}]', )
 
     # iterate over the target block of image
@@ -122,7 +122,6 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
             # this equation is like (x <= j) and (x >= j - occlusion_size[0] - 1) and (y <= i) and
             # (y >= i - occlusion_size[1] - 1) and (image[i, j] == occlusion_color)
             # with the simple occlusion_size = (1, 1), inequality becomes equality
-            # fixme scalar is not correct
             eqs = []
             eq1 = MarabouCore.Equation(MarabouCore.Equation.LE)
             eq1.addAddend(1, x)
