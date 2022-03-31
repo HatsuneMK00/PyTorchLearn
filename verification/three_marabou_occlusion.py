@@ -34,25 +34,65 @@ use_marabou = True
 mean, std = np.array([0.3337, 0.3064, 0.3171]), np.array([0.2672, 0.2564, 0.2629])
 epsilon = 1e-6
 
-# thought #3 in the doc
-def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size: tuple, occlusion_color: int):
+
+def verify_occlusion_by_dividing(image: np.array, label: int, occlusion_size: tuple, occlusion_color: int):
     """
     given an image, label, occlusion size and occlusion color, verify that no matter where the occlusion area is
     network can classify correctly
-    :param image: 1*3*32*32 image in np array after normalization
+    :param image: image in np array after normalization, size: 1*3*32*32
     :param label: int indicates the correct label
     :param occlusion_size: tuple indicates the occlusion size
     :param occlusion_color: int indicates the occlusion color
     :return: vals, constraints_calculation_time, verify_time
     """
+    image = image[0]
+    c, h, w = image.shape
+    # divide the image into several parts, solve them separately
+    block_size = (h // 4, w // 4)
+    block_num = (h // block_size[0], w // block_size[1])
+
+    total_constraints_calculation_time = 0
+    total_verify_time = 0
+    vals = ['unsat']
+
+    for i in range(block_num[0]):
+        for j in range(block_num[1]):
+            print("current block: ", i, j)
+            vals, constraints_calculation_time, verify_time = verify_occlusion_with_fixed_size(image, label,
+                                                                                               occlusion_size,
+                                                                                               occlusion_color,
+                                                                                               block_size,
+                                                                                               i * block_size[0],
+                                                                                               j * block_size[1])
+            total_constraints_calculation_time += constraints_calculation_time
+            total_verify_time += verify_time
+            if vals[0] == 'sat':
+                return vals, total_constraints_calculation_time, total_verify_time
+
+    return vals, total_constraints_calculation_time, total_verify_time
+
+
+# thought #3 in the doc
+def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size: tuple, occlusion_color: int,
+                                     block_size: tuple, width_offset, height_offset):
+    """
+    given an image, label, occlusion size and occlusion color, verify that no matter where the occlusion area is
+    network can classify correctly
+    :param image: image in np array after normalization, size: 3*32*32
+    :param label: int indicates the correct label
+    :param occlusion_size: tuple indicates the occlusion size
+    :param occlusion_color: int indicates the occlusion color
+    :param block_size: tuple indicates the size of each block
+    :param width_offset: int indicates the offset of the occlusion area on the width axis
+    :param height_offset: int indicates the offset of the occlusion area on the height axis
+    :return: vals, constraints_calculation_time, verify_time
+    """
     constraints_calculation_start_time = time.monotonic()
     # load network
     network = load_network(model_name)
-    inputs = network.inputVars[0][0] # 3*32*32
-    outputs = network.outputVars[0] # {output_dim}
+    inputs = network.inputVars[0][0]  # 3*32*32
+    outputs = network.outputVars[0]  # {output_dim}
     n_outputs = outputs.flatten().shape[0]
-    outputs_flattened = outputs.flatten()
-    image = image[0] # 3*32*32
     assert image.shape == inputs.shape
     assert n_outputs == output_dim
 
@@ -63,14 +103,17 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
     # constraints = calculate_constrains(image, inputs)
     x = network.getNewVariable()
     y = network.getNewVariable()
-    network.setLowerBound(x, 0)
-    network.setUpperBound(x, w - occlusion_width)
-    network.setLowerBound(y, 0)
-    network.setUpperBound(y, h - occlusion_height)
+    network.setLowerBound(x, max(0, width_offset - occlusion_width + 1))
+    # fixme this may be larger than current value
+    network.setUpperBound(x, w - occlusion_width + width_offset)
+    network.setLowerBound(y, max(0, height_offset - occlusion_height + 1))
+    # fixme this may be larger than current value
+    network.setUpperBound(y, h - occlusion_height + height_offset)
+    print(f'x: [{max(0, width_offset - occlusion_width + 1)}, {w - occlusion_width + width_offset}]', )
 
-    # iterate over the entire image
-    for i in range(h):
-        for j in range(w):
+    # iterate over the target block of image
+    for i in range(height_offset, height_offset + block_size[0]):
+        for j in range(width_offset, width_offset + block_size[1]):
             # occlusion point cover (i, j)
             # the constraints should have size like [[eq1, eq2], [eq3, eq4], ...]
             # stand for (eq1 and eq2) or (eq3 and eq4) or ...
@@ -79,27 +122,25 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
             # this equation is like (x <= j) and (x >= j - occlusion_size[0] - 1) and (y <= i) and
             # (y >= i - occlusion_size[1] - 1) and (image[i, j] == occlusion_color)
             # with the simple occlusion_size = (1, 1), inequality becomes equality
+            # fixme scalar is not correct
             eqs = []
             eq1 = MarabouCore.Equation(MarabouCore.Equation.LE)
             eq1.addAddend(1, x)
             eq1.setScalar(j + 1 - epsilon)
-            if j + 1 - epsilon < w - occlusion_width:
-                eqs.append(eq1)
+            # fixme can add if statement to avoid adding useless equation
+            eqs.append(eq1)
             eq2 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq2.addAddend(1, x)
             eq2.setScalar(j - occlusion_width + 1)
-            if j - occlusion_width + 1 > 0:
-                eqs.append(eq2)
+            eqs.append(eq2)
             eq3 = MarabouCore.Equation(MarabouCore.Equation.LE)
             eq3.addAddend(1, y)
             eq3.setScalar(i + 1 - epsilon)
-            if i + 1 - epsilon < h - occlusion_height:
-                eqs.append(eq3)
+            eqs.append(eq3)
             eq4 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq4.addAddend(1, y)
             eq4.setScalar(i - occlusion_height + 1)
-            if i - occlusion_height + 1 > 0:
-                eqs.append(eq4)
+            eqs.append(eq4)
             for k in range(c):
                 eq5 = MarabouCore.Equation(MarabouCore.Equation.EQ)
                 eq5.addAddend(1, inputs[k][i][j])
@@ -124,42 +165,47 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
             eq6 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq6.addAddend(1, x)
             eq6.setScalar(j + 1)
-            if (j + 1) <= w - occlusion_width:
-                eqs.append(eq6)
-                constraints.append(eqs)
+            # fixme can add if statement to avoid adding useless equation
+            eqs.append(eq6)
+            constraints.append(eqs)
             eqs = eqs_temp.copy()
             eq7 = MarabouCore.Equation(MarabouCore.Equation.LE)
             eq7.addAddend(1, x)
             eq7.setScalar(j - occlusion_width + 1 - epsilon)
-            if (j - occlusion_width + 1) > 0:
-                eqs.append(eq7)
-                constraints.append(eqs)
+            eqs.append(eq7)
+            constraints.append(eqs)
             eqs = eqs_temp.copy()
             eq8 = MarabouCore.Equation(MarabouCore.Equation.GE)
             eq8.addAddend(1, y)
             eq8.setScalar(i + 1)
-            if (i + 1) <= h - occlusion_height:
-                eqs.append(eq8)
-                constraints.append(eqs)
+            eqs.append(eq8)
+            constraints.append(eqs)
             eqs = eqs_temp.copy()
             eq9 = MarabouCore.Equation(MarabouCore.Equation.LE)
             eq9.addAddend(1, y)
             eq9.setScalar(i - occlusion_height + 1 - epsilon)
-            if (i - occlusion_height + 1) > 0:
-                eqs.append(eq9)
-                constraints.append(eqs)
+            eqs.append(eq9)
+            constraints.append(eqs)
             # add constraints to network
             network.addDisjunctionConstraint(constraints)
 
     lower_bound = (0 - mean) / std
     upper_bound = (1 - mean) / std
     # add additional bounds for the inputs
+    fixed_pixels = 0
     for i in range(h):
         for j in range(w):
             for k in range(c):
-                # must add a small value to avoid constraints conflict issues
-                network.setLowerBound(inputs[k, i, j], lower_bound[k] - 0.001)
-                network.setUpperBound(inputs[k, i, j], upper_bound[k] + 0.001)
+                # set a fixed value for all pixel not in the target block
+                if i < height_offset or i >= height_offset + block_size[0] or j < width_offset or j >= width_offset + block_size[1]:
+                    network.setLowerBound(inputs[k][i][j], image[k][i][j])
+                    network.setUpperBound(inputs[k][i][j], image[k][i][j])
+                    fixed_pixels += 1
+                else:
+                    # must add a small value to avoid constraints conflict issues
+                    network.setLowerBound(inputs[k, i, j], lower_bound[k] - 0.001)
+                    network.setUpperBound(inputs[k, i, j], upper_bound[k] + 0.001)
+    print("fixed pixels: ", fixed_pixels)
 
     # add bounds to output
     # new output constraints using disjunction constraints
@@ -286,7 +332,9 @@ if __name__ == '__main__':
             image, label = next(iterable_img_loader)
             image = image.numpy()
             label = label.item()
-            robust, adv_num, sample_num, total_time = traverse_occlusion_with_fixed_size_by_onnx(image, label, occlusion_size, occlusion_color)
+            robust, adv_num, sample_num, total_time = traverse_occlusion_with_fixed_size_by_onnx(image, label,
+                                                                                                 occlusion_size,
+                                                                                                 occlusion_color)
             print("total time: ", total_time)
             print("robust: ", robust)
             print("adv num: ", adv_num)
@@ -306,9 +354,10 @@ if __name__ == '__main__':
         results_batch = []
         adversarial_example = None
         adv_example_list = None
-        vals, constraints_calculation_time, verify_time = verify_occlusion_with_fixed_size(image, label,
-                                                                                           occlusion_size,
-                                                                                           occlusion_color)
+
+        vals, constraints_calculation_time, verify_time = verify_occlusion_by_dividing(image, label,
+                                                                                       occlusion_size,
+                                                                                       occlusion_color)
         results_batch.append(
             {'vals': vals[0], 'constraints_calculation_time': constraints_calculation_time,
              'verify_time': verify_time,
@@ -352,6 +401,3 @@ if __name__ == '__main__':
             json.dump(results, f)
             f.write('\n')
             f.flush()
-
-
-
