@@ -9,7 +9,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 result_file_dir = '/home/GuoXingWu/occlusion_veri/PyTorchLearn/experiment/results/thought_3/'
-result_filename = 'fnn_model_gtsrb_small.onnx_batchNum_1_occlusionSize_5_5_occlusionColor_0_outputDim_7_20220320_181508.json'
+result_filename = 'fnn_model_gtsrb_small.onnx_batchNum_1_occlusionSize_1_1_occlusionColor_0_outputDim_7_20220331_210734.json'
 
 
 def read_result_file(filename):

@@ -21,7 +21,7 @@ from interpolation import occlusion
 
 # define some global variables
 model_name = "fnn_model_gtsrb_small.onnx"
-occlusion_size = (5, 5)
+occlusion_size = (1, 1)
 occlusion_color = 0
 input_size = (32, 32)
 channel = 3
@@ -96,7 +96,7 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
     assert image.shape == inputs.shape
     assert n_outputs == output_dim
 
-    c, h, w = image.shape[0]
+    c, h, w = image.shape
     occlusion_height, occlusion_width = occlusion_size
 
     # define the constraints on the entire image
@@ -109,7 +109,7 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
     network.setLowerBound(y, max(0, height_offset - occlusion_height + 1))
     # fixme this may be larger than current value
     network.setUpperBound(y, block_size[0] - occlusion_height + height_offset)
-    print(f'x: [{max(0, width_offset - occlusion_width + 1)}, {w - occlusion_width + width_offset}]', )
+    print(f'x: [{max(0, width_offset - occlusion_width + 1)}, {block_size[1] - occlusion_width + width_offset}]', )
 
     # iterate over the target block of image
     for i in range(height_offset, height_offset + block_size[0]):
