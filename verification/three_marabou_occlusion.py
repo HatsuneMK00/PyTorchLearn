@@ -48,7 +48,7 @@ def verify_occlusion_by_dividing(image: np.array, label: int, occlusion_size: tu
     image = image[0]
     c, h, w = image.shape
     # divide the image into several parts, solve them separately
-    block_size = (h // 4, w // 4)
+    block_size = (h // 8, w // 8)
     block_num = (h // block_size[0], w // block_size[1])
 
     total_constraints_calculation_time = 0
@@ -103,9 +103,9 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
     # constraints = calculate_constrains(image, inputs)
     x = network.getNewVariable()
     y = network.getNewVariable()
-    x_lower_bound = width_offset
+    x_lower_bound = max(0, width_offset - occlusion_width + 1)
     x_upper_bound = block_size[1] - occlusion_width + width_offset
-    y_lower_bound = height_offset
+    y_lower_bound = max(0, height_offset - occlusion_height + 1)
     y_upper_bound = block_size[0] - occlusion_height + height_offset
     network.setLowerBound(x, x_lower_bound)
     # fixme this may be larger than current value
