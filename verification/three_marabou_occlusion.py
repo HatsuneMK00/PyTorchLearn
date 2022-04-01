@@ -103,17 +103,22 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
     # constraints = calculate_constrains(image, inputs)
     x = network.getNewVariable()
     y = network.getNewVariable()
-    network.setLowerBound(x, max(0, width_offset - occlusion_width + 1))
+    x_lower_bound = width_offset
+    x_upper_bound = block_size[1] - occlusion_width + width_offset
+    y_lower_bound = height_offset
+    y_upper_bound = block_size[0] - occlusion_height + height_offset
+    network.setLowerBound(x, x_lower_bound)
     # fixme this may be larger than current value
-    network.setUpperBound(x, block_size[1] - occlusion_width + width_offset)
-    network.setLowerBound(y, max(0, height_offset - occlusion_height + 1))
+    network.setUpperBound(x, x_upper_bound)
+    network.setLowerBound(y, y_lower_bound)
     # fixme this may be larger than current value
-    network.setUpperBound(y, block_size[0] - occlusion_height + height_offset)
-    print(f'x: [{max(0, width_offset - occlusion_width + 1)}, {block_size[1] - occlusion_width + width_offset}]', )
+    network.setUpperBound(y, y_upper_bound)
+    print(f'x: [{x_lower_bound}, {x_upper_bound}]', )
 
     # iterate over the target block of image
     for i in range(height_offset, height_offset + block_size[0]):
         for j in range(width_offset, width_offset + block_size[1]):
+            print(f'current pixel: {i}, {j}')
             # occlusion point cover (i, j)
             # the constraints should have size like [[eq1, eq2], [eq3, eq4], ...]
             # stand for (eq1 and eq2) or (eq3 and eq4) or ...
@@ -146,6 +151,8 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
                 eq5.setScalar(((occlusion_color / 255.0) - mean[k]) / std[k])
                 eqs.append(eq5)
             constraints.append(eqs)
+            print(f'x <= {j + 1 - epsilon} and x >= {j - occlusion_width + 1} and y <= {i + 1 - epsilon} and '
+                  f'y >= {i - occlusion_height + 1} and image[{i}, {j}] == {occlusion_color}')
             # otherwise
             # since don't know how to write unequal constraints
             # change two unequal constraints into four greater equal and less equal constraints
@@ -185,6 +192,8 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
             eq9.setScalar(i - occlusion_height + 1 - epsilon)
             eqs.append(eq9)
             constraints.append(eqs)
+            print(f'(x >= {j + 1} or x <= {j - occlusion_width + 1 - epsilon} or y >= {i + 1} or'
+                  f' y <= {i - occlusion_height + 1 - epsilon}) and image[{i}, {j}] == origin_color')
             # add constraints to network
             network.addDisjunctionConstraint(constraints)
 
@@ -196,7 +205,8 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
         for j in range(w):
             for k in range(c):
                 # set a fixed value for all pixel not in the target block
-                if i < height_offset or i >= height_offset + block_size[0] or j < width_offset or j >= width_offset + block_size[1]:
+                if i < height_offset or i >= height_offset + block_size[0] or j < width_offset or j >= width_offset + \
+                        block_size[1]:
                     network.setLowerBound(inputs[k][i][j], image[k][i][j])
                     network.setUpperBound(inputs[k][i][j], image[k][i][j])
                     fixed_pixels += 1
