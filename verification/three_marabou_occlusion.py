@@ -32,7 +32,7 @@ timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime(time.time()))
 use_marabou = True
 
 mean, std = np.array([0.3337, 0.3064, 0.3171]), np.array([0.2672, 0.2564, 0.2629])
-epsilon = 1e-6
+epsilon = 1e-3
 
 
 def verify_occlusion_by_dividing(image: np.array, label: int, occlusion_size: tuple, occlusion_color: int):
