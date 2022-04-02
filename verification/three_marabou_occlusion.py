@@ -6,6 +6,7 @@
 # network can classify correctly
 
 import json
+import os
 
 import onnx
 import onnxruntime
@@ -31,11 +32,13 @@ result_file_dir = '/home/GuoXingWu/occlusion_veri/PyTorchLearn/experiment/result
 timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime(time.time()))
 use_marabou = True
 
+block_size = (4, 4) # the size of a sub verification problem, the area where occlusion can be applied
+
 mean, std = np.array([0.3337, 0.3064, 0.3171]), np.array([0.2672, 0.2564, 0.2629])
 epsilon = 1e-3
 
 
-def verify_occlusion_by_dividing(image: np.array, label: int, occlusion_size: tuple, occlusion_color: int):
+def verify_occlusion_by_dividing(image: np.array, label: int, occlusion_size: tuple, occlusion_color: int, block_size):
     """
     given an image, label, occlusion size and occlusion color, verify that no matter where the occlusion area is
     network can classify correctly
@@ -43,12 +46,12 @@ def verify_occlusion_by_dividing(image: np.array, label: int, occlusion_size: tu
     :param label: int indicates the correct label
     :param occlusion_size: tuple indicates the occlusion size
     :param occlusion_color: int indicates the occlusion color
+    :param block_size: int indicates the block size
     :return: vals, constraints_calculation_time, verify_time
     """
     image = image[0]
     c, h, w = image.shape
     # divide the image into several parts, solve them separately
-    block_size = (h // 8, w // 8)
     block_num = (h // block_size[0], w // block_size[1])
 
     total_constraints_calculation_time = 0
@@ -332,6 +335,62 @@ def calculate_constrains(image, inputs):
     return constraints
 
 
+def conduct_experiment(occlusion_size, occlusion_color, block_size, pe_timestamp):
+    img_loader = get_test_images_loader(input_size, output_dim=output_dim)
+    iterable_img_loader = iter(img_loader)
+
+    results = []
+    for i in range(batch_num):
+        start_time = time.monotonic()
+        image, label = iterable_img_loader.next()
+        image = image.numpy()
+        label = label.item()
+        isRobust = True
+        # constraints_calculation_time = -1.0
+        # verify_time = -1.0
+        predicted_label = -1
+        results_batch = []
+        adversarial_example = None
+        adv_example_list = None
+
+        vals, constraints_calculation_time, verify_time = verify_occlusion_by_dividing(image, label,
+                                                                                       occlusion_size,
+                                                                                       occlusion_color,
+                                                                                       block_size)
+        results_batch.append(
+            {'vals': vals[0], 'constraints_calculation_time': constraints_calculation_time,
+             'verify_time': verify_time,
+             })
+        if vals[0] == 'sat':
+            adversarial_example = vals[1]
+            # unpack adversarial example to a list
+            # adversarial_example is a dict{int, float}
+            # key is the index of the variable in the network
+            # value is the value of the variable
+            adv_example_list = [adversarial_example[i] for i in range(channel * input_size[0] * input_size[1])]
+            isRobust = False
+        total_time = time.monotonic() - start_time
+
+        results.append(
+            {'robust': isRobust, 'total_verify_time': total_time,
+             'true_label': label, 'predicted_label': predicted_label, 'adv_example': adv_example_list,
+             'origin_image': image.tolist(), 'detail': results_batch})
+
+        dir = result_file_dir + f'pe_{pe_timestamp}/'
+        # create directory if not exist
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+        # save results to file
+        result_filepath = dir + f'{model_name}_batchNum_{batch_num}_occlusionSize_{occlusion_size[0]}_' \
+                                            f'{occlusion_size[1]}_occlusionColor_{occlusion_color}_outputDim_' \
+                                            f'{output_dim}_blockSize_{block_size[0]}_{block_size[1]}.json'
+        with open(result_filepath, 'w') as f:
+            json.dump(results, f)
+            f.write('\n')
+            f.flush()
+    return results
+
+
 if __name__ == '__main__':
     img_loader = get_test_images_loader(input_size, output_dim=output_dim)
     iterable_img_loader = iter(img_loader)
@@ -366,7 +425,8 @@ if __name__ == '__main__':
 
         vals, constraints_calculation_time, verify_time = verify_occlusion_by_dividing(image, label,
                                                                                        occlusion_size,
-                                                                                       occlusion_color)
+                                                                                       occlusion_color,
+                                                                                       block_size)
         results_batch.append(
             {'vals': vals[0], 'constraints_calculation_time': constraints_calculation_time,
              'verify_time': verify_time,
