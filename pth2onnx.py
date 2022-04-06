@@ -76,20 +76,20 @@ def test_model_onnx(onnx_model_path, input_size, channel_num, output_dim, batch_
     samples, labels = iter(test_loader).next()
     print("samples shape: ", samples.shape)
     print("labels shape: ", labels.shape)
-    # load the onnx model
-    onnx_model = onnx.load(onnx_model_path)
-    # create the onnxruntime session
-    ort_session = onnxruntime.InferenceSession(onnx_model_path)
-    # create the input tensor
-    input_name = ort_session.get_inputs()[0].name
-    input_tensor = samples.numpy()
-    input_tensor = input_tensor.reshape(batch_size, channel_num, input_size[0], input_size[1])
-    # run the model
-    output_tensor = ort_session.run(None, {input_name: input_tensor})  # the torch_out is 1 * batch_size * output_dim
-    output_tensor = torch.tensor(output_tensor[0])
-    _, predicted = torch.max(output_tensor, 1)
-    acc = (predicted == labels).sum().item() / batch_size
-    print(f'accuracy: {100.0 * acc} &')
+    acc = 0
+    for i in range(100):
+        # create the onnxruntime session
+        ort_session = onnxruntime.InferenceSession(onnx_model_path)
+        # create the input tensor
+        input_name = ort_session.get_inputs()[0].name
+        input_tensor = samples.numpy()
+        input_tensor = input_tensor.reshape(batch_size, channel_num, input_size[0], input_size[1])
+        # run the model
+        output_tensor = ort_session.run(None, {input_name: input_tensor})  # the torch_out is 1 * batch_size * output_dim
+        output_tensor = torch.tensor(output_tensor[0])
+        _, predicted = torch.max(output_tensor, 1)
+        acc += (predicted == labels).sum().item() / batch_size
+    print(f'accuracy: {acc}%')
 
 
 if __name__ == '__main__':
