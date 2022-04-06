@@ -15,8 +15,8 @@ import torchvision
 import torch.nn as nn
 import torch.utils.data as data
 
-from fnn_model_1 import SmallDNNModel
-from fnn_model_1 import OUTPUT_SIZE
+from fnn_model_2 import SmallDNNModel2
+from fnn_model_2 import OUTPUT_SIZE
 
 from gtsrb_dataset import GTSRB
 from torchvision import transforms
@@ -32,8 +32,8 @@ data_transform = transforms.Compose([
 ])
 
 # define the source of training and test data only with first 7 classes
-train_data = GTSRB(root_dir='../data', train=True, transform=data_transform, classes=range(0, 7))
-test_data = GTSRB(root_dir='../data', train=False, transform=data_transform, classes=range(0, 7))
+train_data = GTSRB(root_dir='../data', train=True, transform=data_transform, classes=[1, 2, 3, 4, 5, 7, 8])
+test_data = GTSRB(root_dir='../data', train=False, transform=data_transform, classes=[1, 2, 3, 4, 5, 7, 8])
 
 # divide the dataset into training and validation set
 ratio = 0.8
@@ -50,7 +50,6 @@ output_dim = OUTPUT_SIZE
 train_loader = data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
 valid_loader = data.DataLoader(dataset=valid_dataset, batch_size=batch_size, shuffle=True)
 test_loader = data.DataLoader(dataset=test_data, batch_size=batch_size, shuffle=False)
-
 
 # print the size of training sample
 print("train_size:", len(train_dataset))
@@ -74,7 +73,7 @@ print(samples.shape, labels.shape)
 
 
 # define the model
-model = SmallDNNModel().to(device)
+model = SmallDNNModel2().to(device)
 
 # define the loss function and optimizer
 criterion = nn.CrossEntropyLoss()
