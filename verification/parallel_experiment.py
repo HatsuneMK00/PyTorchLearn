@@ -6,7 +6,7 @@ This file is used to conduct experiments parallely to find out a better block si
 """
 
 import time
-from multiprocessing.dummy import Pool
+from multiprocessing import Pool
 
 import numpy as np
 
@@ -26,10 +26,10 @@ if __name__ == '__main__':
             parameters.append((occlusion_size, occlusion_color, block_size, timestamp))
 
     # conduct experiments parallely
-    pool = Pool(processes=32)
-    results = pool.map(conduct_experiment, parameters)
+    pool = Pool(processes=8)
+    results = pool.starmap(conduct_experiment, parameters)
     pool.close()
-    pool.join(timeout=7200)
+    pool.join(timeout=60 * 60 * 8)
 
     # save results
     np.save('pe_results.npy', results)

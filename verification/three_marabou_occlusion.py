@@ -336,6 +336,8 @@ def calculate_constrains(image, inputs):
 
 
 def conduct_experiment(occlusion_size, occlusion_color, block_size, pe_timestamp):
+    print("ThreeMarabouOcclusionExperiment: experiment start, occlusion size: ", occlusion_size,
+          ", block size: ", block_size)
     img_loader = get_test_images_loader(input_size, output_dim=output_dim)
     iterable_img_loader = iter(img_loader)
 
