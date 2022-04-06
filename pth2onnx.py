@@ -11,19 +11,20 @@ from torchvision import transforms
 from gtsrb.gtsrb_dataset import GTSRB
 from gtsrb.cnn_model_small import SmallCNNModel
 from gtsrb.fnn_model_1 import SmallDNNModel
+from gtsrb.fnn_model_2 import SmallDNNModel2
 
 import onnx
 import onnxruntime
 
 # define some global parameters for exporting the pytorch model
-model_name = 'gtsrb_cnn_small'
+model_name = 'gtsrb_fnn_2'
 use_device = 'cpu'
 input_size = (32, 32)
 channel_num = 3
-output_dim = 43
+output_dim = 7
 batch_size = 1
-model_path = 'model/cnn_model_gtsrb_small.pth'
-onnx_model_path = 'model/cnn_model_gtsrb_small.onnx'  # only used in testing
+model_path = 'model/fnn_model_gtsrb_small_2.pth'
+onnx_model_path = 'model/fnn_model_gtsrb_small_2.onnx'  # only used in testing
 model_save_dir = 'model/'
 only_export = True
 only_test = False
@@ -34,6 +35,8 @@ def initialize_model(model_name):
         model = SmallCNNModel()
     elif model_name == 'gtsrb_fnn_1':
         model = SmallDNNModel()
+    elif model_name == 'gtsrb_fnn_2':
+        model = SmallDNNModel2()
     else:
         raise ValueError('model name is not defined')
 
@@ -51,8 +54,7 @@ def export_model_2_onnx(model, model_name, device, input_size, channel_num, batc
     model = model.to(device)
     # export the model to onnx format
     dummy_input = torch.randn(batch_size, channel_num, input_size[0], input_size[1])
-    # encode input_size, channel_num, batch_size, output_dim to the onnx model filename
-    onnx_model_filename = f'{model_name}_inputSize_{input_size[0]}, {input_size[1]}_channelNum_{channel_num}_batchSize_{batch_size}_outputDim_{output_dim}.onnx'
+    onnx_model_filename = model_path.split('.')[0] + '.onnx'
     torch.onnx.export(model, dummy_input, model_save_dir + onnx_model_filename, verbose=True)
 
 
