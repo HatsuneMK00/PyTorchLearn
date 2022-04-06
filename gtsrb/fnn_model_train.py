@@ -153,7 +153,7 @@ for epoch in range(epochs):
 
 print('Finished Training')
 try:
-    torch.save(model.state_dict(), '../model/fnn_model_gtsrb_small.pth')
+    torch.save(model.state_dict(), '../model/fnn_model_gtsrb_small_2.pth')
 except Exception as e:
     print('Exception: ', e)
 
