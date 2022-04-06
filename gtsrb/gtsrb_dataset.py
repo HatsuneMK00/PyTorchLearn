@@ -53,5 +53,6 @@ class GTSRB(Dataset):
 
         if self.transform is not None:
             img = self.transform(img)
-
-        return img, classId
+        # label is the idx of classId in classes
+        label = self.classes.index(classId)
+        return img, label
