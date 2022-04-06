@@ -54,7 +54,7 @@ def export_model_2_onnx(model, model_name, device, input_size, channel_num, batc
     model = model.to(device)
     # export the model to onnx format
     dummy_input = torch.randn(batch_size, channel_num, input_size[0], input_size[1])
-    onnx_model_filename = model_path.split('.')[0] + '.onnx'
+    onnx_model_filename = model_path.split('/')[-1].split('.')[0] + '.onnx'
     torch.onnx.export(model, dummy_input, model_save_dir + onnx_model_filename, verbose=True)
 
 
