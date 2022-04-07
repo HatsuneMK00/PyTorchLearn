@@ -12,8 +12,8 @@ import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 import torch.utils.data as data
-from cnn_model_small import SmallCNNModel
-from cnn_model_small import OUTPUT_DIM
+from cnn_model_small_2 import SmallCNNModel2
+from cnn_model_small_2 import OUTPUT_DIM
 
 from gtsrb_dataset import GTSRB
 from torchvision import transforms
@@ -29,8 +29,8 @@ data_transform = transforms.Compose([
 ])
 
 # define the source of training and test data
-train_data = GTSRB(root_dir='../data', train=True, transform=data_transform)
-test_data = GTSRB(root_dir='../data', train=False, transform=data_transform)
+train_data = GTSRB(root_dir='../data', train=True, transform=data_transform, classes=[1, 2, 3, 4, 5, 7, 8])
+test_data = GTSRB(root_dir='../data', train=False, transform=data_transform, classes=[1, 2, 3, 4, 5, 7, 8])
 
 # divide the dataset into training and validation set
 ratio = 0.8
@@ -67,7 +67,7 @@ print(samples.shape, labels.shape)
 
 
 # initialize the CNN model
-model = SmallCNNModel().to(device)
+model = SmallCNNModel2().to(device)
 
 # define the loss function and optimizer
 criterion = nn.CrossEntropyLoss()
@@ -150,7 +150,7 @@ for epoch in range(epochs):
 
 print('Finished Training')
 try:
-    torch.save(model.state_dict(), '../model/cnn_model_gtsrb_small.pth')
+    torch.save(model.state_dict(), '../model/cnn_model_gtsrb_small_2.pth')
 except Exception as e:
     print('Exception: ', e)
 
