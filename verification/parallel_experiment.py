@@ -14,7 +14,7 @@ import numpy as np
 from three_marabou_occlusion import conduct_experiment
 from verification.show_adv_example import get_adv_examples
 
-pe_result_dir = "../experiment/results/thought_3/pe_20220406_172949/"
+pe_result_dir = "/home/GuoXingWu/occlusion_veri/PyTorchLearn/experiment/results/thought_3/pe_20220406_172949/"
 analysis = True
 
 def analyze_result():
@@ -30,7 +30,6 @@ def analyze_result():
                     adv_examples = get_adv_examples(data)
                     # fixme only use result of the first image
                     results[file_name] = {
-                        "file_name": file_name,
                         "total_verify_time": adv_examples[0]['total_verify_time'],
                     }
     # sort the results by total_verify_time
@@ -39,7 +38,7 @@ def analyze_result():
     # print the result
     print("------------------Result of {}------------------".format(pe_result_dir))
     for result in sorted_results:
-        print("{} : {}".format(result['file_name'], result['total_verify_time']))
+        print("{} : {}".format(result[0], result[1]['total_verify_time']))
     print("------------------------------------------------")
 
 
