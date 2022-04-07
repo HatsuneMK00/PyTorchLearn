@@ -7,7 +7,7 @@ This file is used to conduct experiments parallely to find out a better block si
 import json
 import os
 import time
-from multiprocessing import Pool
+from multiprocessing.dummy import Pool
 
 import numpy as np
 
@@ -48,10 +48,10 @@ def analyze_result():
 # fixme Due to file I/O (probably), the parallelization is not working. Set processes to 1 on server currently.
 if __name__ == '__main__':
     parameters = []
-    block_sizes = [(4, 4), (8, 8), (16, 16), (32, 32)]
+    block_sizes = [(8, 8), (16, 16), (32, 32)]
     occlusion_color = 0
     # occlusion size is a list of tuple (i, i), i ranges from 0 to 31
-    occlusion_sizes = [(i, i) for i in range(32)]
+    occlusion_sizes = [(i, i) for i in range(2, 8)]
 
     timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime(time.time()))
 
@@ -60,7 +60,7 @@ if __name__ == '__main__':
             parameters.append((occlusion_size, occlusion_color, block_size, timestamp))
 
     # conduct experiments parallely
-    pool = Pool(processes=8)
+    pool = Pool(processes=1)
     results = pool.starmap(conduct_experiment, parameters)
     pool.close()
     pool.join(timeout=60 * 60 * 8)
