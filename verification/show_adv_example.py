@@ -40,7 +40,8 @@ def get_adv_examples(result):
                                 'origin_image': origin_image,
                                 'adv_example': adv_example,
                                 'idx': idx,
-                                'occlusion_size': (occlusion_height, occlusion_width)}
+                                'occlusion_size': (occlusion_height, occlusion_width),
+                                'total_verify_time': total_verify_time}
             adv_examples.append(adv_example_dict)
     return adv_examples
 
