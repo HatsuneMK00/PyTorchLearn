@@ -14,8 +14,8 @@ import numpy as np
 from three_marabou_occlusion import conduct_experiment
 from verification.show_adv_example import get_adv_examples
 
-pe_result_dir = "./experiment/results/thought_3/pe_20220406_172949/"
-
+pe_result_dir = "../experiment/results/thought_3/pe_20220406_172949/"
+analysis = True
 
 def analyze_result():
     # load all file in the result directory
@@ -47,6 +47,9 @@ def analyze_result():
 
 # fixme Due to file I/O (probably), the parallelization is not working. Set processes to 1 on server currently.
 if __name__ == '__main__':
+    if analysis == True:
+        analyze_result()
+        exit()
     parameters = []
     block_sizes = [(8, 8), (16, 16), (32, 32)]
     occlusion_color = 0
