@@ -27,8 +27,8 @@ batch_size = 1
 model_path = 'model/cnn_model_gtsrb_small_2.pth'
 onnx_model_path = 'model/cnn_model_gtsrb_small_2.onnx'  # only used in testing
 model_save_dir = 'model/'
-only_export = True
-only_test = False
+only_export = False
+only_test = True
 
 
 def initialize_model(model_name):
@@ -71,7 +71,7 @@ def test_model_onnx(onnx_model_path, input_size, channel_num, output_dim, batch_
     ])
     # define the test data
     if output_dim != 43:
-        test_data = GTSRB(root_dir='data/', train=False, transform=data_transform, classes=range(0, output_dim))
+        test_data = GTSRB(root_dir='data/', train=False, transform=data_transform, classes=[1, 2, 3, 4, 5, 7, 8])
     else:
         test_data = GTSRB(root_dir='data/', train=False, transform=data_transform)
     # create data loader for evaluating

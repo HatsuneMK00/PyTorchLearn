@@ -21,8 +21,8 @@ from occlusion_bound import calculate_entire_bounds
 from interpolation import occlusion
 
 # define some global variables
-model_name = "fnn_model_gtsrb_small.onnx"
-occlusion_size = (1, 1)
+model_name = "cnn_model_gtsrb_small_2.onnx"
+occlusion_size = (2, 2)
 occlusion_color = 0
 input_size = (32, 32)
 channel = 3
@@ -30,9 +30,9 @@ output_dim = 7
 batch_num = 1
 result_file_dir = '/home/GuoXingWu/occlusion_veri/PyTorchLearn/experiment/results/thought_3/'
 timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime(time.time()))
-use_marabou = True
+use_marabou = False
 
-block_size = (4, 4) # the size of a sub verification problem, the area where occlusion can be applied
+block_size = (32, 32) # the size of a sub verification problem, the area where occlusion can be applied
 
 mean, std = np.array([0.3337, 0.3064, 0.3171]), np.array([0.2672, 0.2564, 0.2629])
 epsilon = 1e-3
