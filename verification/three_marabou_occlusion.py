@@ -338,7 +338,7 @@ def calculate_constrains(image, inputs):
 def conduct_experiment(occlusion_size, occlusion_color, block_size, pe_timestamp):
     print("ThreeMarabouOcclusionExperiment: experiment start, occlusion size: ", occlusion_size,
           ", block size: ", block_size)
-    img_loader = get_test_images_loader(input_size, output_dim=output_dim)
+    img_loader = get_test_images_loader(input_size, output_dim=output_dim, classes=[1, 2, 3, 4, 5, 7, 8])
     iterable_img_loader = iter(img_loader)
 
     results = []
@@ -394,7 +394,7 @@ def conduct_experiment(occlusion_size, occlusion_color, block_size, pe_timestamp
 
 
 if __name__ == '__main__':
-    img_loader = get_test_images_loader(input_size, output_dim=output_dim)
+    img_loader = get_test_images_loader(input_size, output_dim=output_dim, classes=[1, 2, 3, 4, 5, 7, 8])
     iterable_img_loader = iter(img_loader)
 
     if not use_marabou:
