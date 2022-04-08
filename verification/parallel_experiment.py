@@ -7,7 +7,7 @@ This file is used to conduct experiments parallely to find out a better block si
 import json
 import os
 import time
-from multiprocessing.dummy import Pool
+import concurrent.futures as futures
 
 import numpy as np
 
@@ -61,10 +61,14 @@ if __name__ == '__main__':
         for occlusion_size in occlusion_sizes:
             parameters.append((occlusion_size, occlusion_color, block_size, timestamp))
 
-    # conduct experiments parallely
-    pool = Pool(processes=1)
-    results = pool.starmap(conduct_experiment, parameters)
-    pool.close()
-    pool.join(timeout=60 * 60 * 8)
+    # fixme set processes to 1 on server currently
+    # conduct experiment parallely with concurrent.futures
+    with futures.ThreadPoolExecutor(max_workers=1) as executor:
+        for parameter in parameters:
+            future = executor.submit(conduct_experiment, *parameter)
+            try:
+                future.result(timeout=60*60*1)
+            except futures.TimeoutError:
+                print("Parallel Experiment: Timeout for {}".format(parameter))
 
     print("Parallel Experiment: Done!")
