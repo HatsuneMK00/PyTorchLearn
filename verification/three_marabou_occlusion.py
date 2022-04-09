@@ -30,7 +30,7 @@ output_dim = 7
 batch_num = 1
 result_file_dir = '/home/GuoXingWu/occlusion_veri/PyTorchLearn/experiment/results/thought_3/'
 timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime(time.time()))
-use_marabou = False
+use_marabou = True
 
 block_size = (32, 32) # the size of a sub verification problem, the area where occlusion can be applied
 

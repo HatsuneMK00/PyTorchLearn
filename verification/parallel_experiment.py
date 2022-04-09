@@ -7,7 +7,8 @@ This file is used to conduct experiments parallely to find out a better block si
 import json
 import os
 import time
-import concurrent.futures as futures
+from concurrent.futures import TimeoutError
+import pebble
 
 import numpy as np
 
@@ -15,7 +16,7 @@ from three_marabou_occlusion import conduct_experiment
 from verification.show_adv_example import get_adv_examples
 
 pe_result_dir = "/home/GuoXingWu/occlusion_veri/PyTorchLearn/experiment/results/thought_3/pe_20220406_172949/"
-analysis = True
+analysis = False
 
 def analyze_result():
     # load all file in the result directory
@@ -50,10 +51,10 @@ if __name__ == '__main__':
         analyze_result()
         exit()
     parameters = []
-    block_sizes = [(8, 8), (16, 16), (32, 32)]
+    block_sizes = [(32, 32)]
     occlusion_color = 0
     # occlusion size is a list of tuple (i, i), i ranges from 0 to 31
-    occlusion_sizes = [(i, i) for i in range(2, 8)]
+    occlusion_sizes = [(i, i) for i in range(1, 8)]
 
     timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime(time.time()))
 
@@ -63,12 +64,13 @@ if __name__ == '__main__':
 
     # fixme set processes to 1 on server currently
     # conduct experiment parallely with concurrent.futures
-    with futures.ThreadPoolExecutor(max_workers=1) as executor:
+    with pebble.ProcessPool(1) as pool:
         for parameter in parameters:
-            future = executor.submit(conduct_experiment, *parameter)
+            future = pool.schedule(conduct_experiment, parameter)
             try:
-                future.result(timeout=60*60*1)
-            except futures.TimeoutError:
+                print("Parallel Experiment: result for {}".format(parameter), future.result(timeout=60*60*2))
+            except TimeoutError:
+                future.cancel()
                 print("Parallel Experiment: Timeout for {}".format(parameter))
 
     print("Parallel Experiment: Done!")
