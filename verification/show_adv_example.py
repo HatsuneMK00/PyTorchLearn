@@ -9,7 +9,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 result_file_dir = '/home/GuoXingWu/occlusion_veri/PyTorchLearn/experiment/results/thought_3/'
-result_filename = 'fnn_model_gtsrb_small.onnx_batchNum_1_occlusionSize_2_2_occlusionColor_0_outputDim_7_20220401_142334.json'
+result_filename = 'cnn_model_gtsrb_small_2.onnx_batchNum_1_occlusionSize_2_2_occlusionColor_0_outputDim_7_20220407_230247.json'
 
 
 def read_result_file(filename):
@@ -41,7 +41,7 @@ def get_adv_examples(result):
                             'total_verify_time': total_verify_time}
         if not result[i]['robust']:
             adv_example = result[i]['adv_example']  # size is (32 * 32 * 3, )
-            adv_example_dict['adv_example']: adv_example
+            adv_example_dict['adv_example'] = adv_example
         adv_examples.append(adv_example_dict)
     return adv_examples
 
