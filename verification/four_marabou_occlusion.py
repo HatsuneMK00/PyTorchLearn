@@ -22,8 +22,8 @@ from interpolation import occlusion
 
 # define some global variables
 model_name = "fnn_model_gtsrb_small.onnx"
-occlusion_size = (2, 2)
-occlusion_color = 0
+occlusion_size = (10, 10)
+color_epsilon = 0.5
 input_size = (32, 32)
 channel = 3
 output_dim = 7
@@ -389,7 +389,7 @@ if __name__ == '__main__':
         adv_example_list = None
 
         vals, constraints_calculation_time, verify_time = verify_occlusion_by_dividing(image, label, occlusion_size,
-                                                                                       occlusion_color, block_size)
+                                                                                       color_epsilon, block_size)
         results_batch.append(
             {'vals': vals[0], 'constraints_calculation_time': constraints_calculation_time,
              'verify_time': verify_time,
@@ -428,7 +428,7 @@ if __name__ == '__main__':
              'origin_image': image.tolist(), 'detail': results_batch})
 
         # save results to file
-        result_filepath = result_file_dir + f'{model_name}_batchNum_{batch_num}_occlusionSize_{occlusion_size[0]}_{occlusion_size[1]}_occlusionColor_{occlusion_color}_outputDim_{output_dim}_{timestamp}.json'
+        result_filepath = result_file_dir + f'{model_name}_batchNum_{batch_num}_occlusionSize_{occlusion_size[0]}_{occlusion_size[1]}_colorEpsilon_{color_epsilon}_outputDim_{output_dim}_{timestamp}.json'
         with open(result_filepath, 'w') as f:
             json.dump(results, f)
             f.write('\n')

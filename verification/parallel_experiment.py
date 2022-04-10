@@ -16,7 +16,7 @@ from three_marabou_occlusion import conduct_experiment
 from verification.show_adv_example import get_adv_examples
 
 pe_result_dir = "/home/GuoXingWu/occlusion_veri/PyTorchLearn/experiment/results/thought_3/pe_20220409_142644/"
-analysis = True
+analysis = False
 
 def analyze_result():
     # load all file in the result directory
@@ -54,7 +54,7 @@ if __name__ == '__main__':
     block_sizes = [(32, 32)]
     occlusion_color = 0
     # occlusion size is a list of tuple (i, i), i ranges from 0 to 31
-    occlusion_sizes = [(i, i) for i in range(1, 8)]
+    occlusion_sizes = [(i, i) for i in range(8, 16)]
 
     timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime(time.time()))
 
