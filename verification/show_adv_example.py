@@ -27,22 +27,22 @@ def get_adv_examples(result):
     occlusion_height = result_filename.split('_')[7]
     occlusion_width = result_filename.split('_')[8]
     for i in range(len(result)):
+        predicted_label = result[i]['predicted_label']
+        total_verify_time = result[i]['total_verify_time']
+        true_label = result[i]['true_label']
+        origin_image = result[i]['origin_image']  # size is (1, 32, 32, 3)
+        idx = i
+        # pack them into dict and append to adv_examples
+        adv_example_dict = {'predicted_label': predicted_label,
+                            'true_label': true_label,
+                            'origin_image': origin_image,
+                            'idx': idx,
+                            'occlusion_size': (occlusion_height, occlusion_width),
+                            'total_verify_time': total_verify_time}
         if not result[i]['robust']:
-            predicted_label = result[i]['predicted_label']
-            total_verify_time = result[i]['total_verify_time']
-            true_label = result[i]['true_label']
-            origin_image = result[i]['origin_image'] # size is (1, 32, 32, 3)
-            adv_example = result[i]['adv_example'] # size is (32 * 32 * 3, )
-            idx = i
-            # pack them into dict and append to adv_examples
-            adv_example_dict = {'predicted_label': predicted_label,
-                                'true_label': true_label,
-                                'origin_image': origin_image,
-                                'adv_example': adv_example,
-                                'idx': idx,
-                                'occlusion_size': (occlusion_height, occlusion_width),
-                                'total_verify_time': total_verify_time}
-            adv_examples.append(adv_example_dict)
+            adv_example = result[i]['adv_example']  # size is (32 * 32 * 3, )
+            adv_example_dict['adv_example']: adv_example
+        adv_examples.append(adv_example_dict)
     return adv_examples
 
 
