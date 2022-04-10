@@ -22,13 +22,13 @@ from interpolation import occlusion
 
 # define some global variables
 model_name = "fnn_model_gtsrb_small.onnx"
-occlusion_size = (10, 10)
+occlusion_size = (5, 5)
 color_epsilon = 0.5
 input_size = (32, 32)
 channel = 3
 output_dim = 7
 batch_num = 1
-result_file_dir = '/home/GuoXingWu/occlusion_veri/PyTorchLearn/experiment/results/thought_3/'
+result_file_dir = '/home/GuoXingWu/occlusion_veri/PyTorchLearn/experiment/results/thought_4/'
 timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime(time.time()))
 use_marabou = True
 
@@ -125,6 +125,30 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
             # stand for (eq1 and eq2) or (eq3 and eq4) or ...
             # network.addDisjunctionConstraint(constraints)
             constraints = []
+            # this equation is like (x <= j) and (x >= j - occlusion_size[0] - 1) and (y <= i) and
+            # (y >= i - occlusion_size[1] - 1) and (image[i, j] == occlusion_color)
+            # with the simple occlusion_size = (1, 1), inequality becomes equality
+            eqs = []
+            eq1 = MarabouCore.Equation(MarabouCore.Equation.LE)
+            eq1.addAddend(1, x)
+            eq1.setScalar(j + 1 - epsilon)
+            eqs.append(eq1)
+            eq2 = MarabouCore.Equation(MarabouCore.Equation.GE)
+            eq2.addAddend(1, x)
+            eq2.setScalar(j - occlusion_width + 1)
+            eqs.append(eq2)
+            eq3 = MarabouCore.Equation(MarabouCore.Equation.LE)
+            eq3.addAddend(1, y)
+            eq3.setScalar(i + 1 - epsilon)
+            eqs.append(eq3)
+            eq4 = MarabouCore.Equation(MarabouCore.Equation.GE)
+            eq4.addAddend(1, y)
+            eq4.setScalar(i - occlusion_height + 1)
+            eqs.append(eq4)
+            constraints.append(eqs)
+            print(f'x <= {j + 1 - epsilon} and x >= {j - occlusion_width + 1} and y <= {i + 1 - epsilon} and '
+                  f'y >= {i - occlusion_height + 1} and image[{i}, {j}] is between +-color_epsilon')
+            # otherwise
             # since don't know how to write unequal constraints
             # change two unequal constraints into four greater equal and less equal constraints
             # and also don't know if there exists greater and less relation
