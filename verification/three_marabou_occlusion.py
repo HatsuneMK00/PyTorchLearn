@@ -58,6 +58,8 @@ def verify_occlusion_by_dividing(image: np.array, label: int, occlusion_size: tu
     total_verify_time = 0
     vals = ['unsat']
 
+    print("current occlusion size: ", occlusion_size)
+
     for i in range(block_num[0]):
         for j in range(block_num[1]):
             print("current block: ", i, j)
@@ -121,7 +123,7 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
     # iterate over the target block of image
     for i in range(height_offset, height_offset + block_size[0]):
         for j in range(width_offset, width_offset + block_size[1]):
-            print(f'current pixel: {i}, {j}')
+            # print(f'current pixel: {i}, {j}')
             # occlusion point cover (i, j)
             # the constraints should have size like [[eq1, eq2], [eq3, eq4], ...]
             # stand for (eq1 and eq2) or (eq3 and eq4) or ...
@@ -154,8 +156,8 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
                 eq5.setScalar(((occlusion_color / 255.0) - mean[k]) / std[k])
                 eqs.append(eq5)
             constraints.append(eqs)
-            print(f'x <= {j + 1 - epsilon} and x >= {j - occlusion_width + 1} and y <= {i + 1 - epsilon} and '
-                  f'y >= {i - occlusion_height + 1} and image[{i}, {j}] == {occlusion_color}')
+            # print(f'x <= {j + 1 - epsilon} and x >= {j - occlusion_width + 1} and y <= {i + 1 - epsilon} and '
+            #       f'y >= {i - occlusion_height + 1} and image[{i}, {j}] == {occlusion_color}')
             # otherwise
             # since don't know how to write unequal constraints
             # change two unequal constraints into four greater equal and less equal constraints
@@ -195,8 +197,8 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
             eq9.setScalar(i - occlusion_height + 1 - epsilon)
             eqs.append(eq9)
             constraints.append(eqs)
-            print(f'(x >= {j + 1} or x <= {j - occlusion_width + 1 - epsilon} or y >= {i + 1} or'
-                  f' y <= {i - occlusion_height + 1 - epsilon}) and image[{i}, {j}] == origin_color')
+            # print(f'(x >= {j + 1} or x <= {j - occlusion_width + 1 - epsilon} or y >= {i + 1} or'
+            #       f' y <= {i - occlusion_height + 1 - epsilon}) and image[{i}, {j}] == origin_color')
             # add constraints to network
             network.addDisjunctionConstraint(constraints)
 
@@ -239,13 +241,13 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
     constraints_calculation_time = constraints_calculation_end_time - constraints_calculation_start_time
 
     verify_start_time = time.monotonic()
-    print("verify start: current label: ", label, flush=True)
-    options = Marabou.createOptions(numWorkers=32, timeoutInSeconds=3600, solveWithMILP=True)
+    print("verify start: current true label: ", label, flush=True)
+    options = Marabou.createOptions(solveWithMILP=True)
     vals = network.solve(verbose=True, options=options)
     verify_end_time = time.monotonic()
     verify_time = verify_end_time - verify_start_time
 
-    print("vals length: ", len(vals), flush=True)
+    # print("vals length: ", len(vals), flush=True)
 
     return vals, constraints_calculation_time, verify_time
 

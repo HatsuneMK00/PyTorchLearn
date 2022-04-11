@@ -68,10 +68,10 @@ if __name__ == '__main__':
         for parameter in parameters:
             future = pool.schedule(conduct_experiment, parameter)
             try:
-                future.result(timeout=60 * 60 * 2)
-                print("Parallel Experiment: Complete for {}".format(parameter))
+                future.result(timeout=60 * 60 * 3)
+                print("Parallel Experiment: Complete for {}".format(parameter), flush=True)
             except TimeoutError:
                 future.cancel()
-                print("Parallel Experiment: Timeout for {}".format(parameter))
+                print("Parallel Experiment: Timeout for {}".format(parameter), flush=True)
 
     print("Parallel Experiment: Done!")
