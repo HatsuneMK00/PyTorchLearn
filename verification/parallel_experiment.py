@@ -12,9 +12,11 @@ import pebble
 
 import numpy as np
 
-from three_marabou_occlusion import conduct_experiment
+import three_marabou_occlusion
+import four_marabou_occlusion
 from verification.show_adv_example import get_adv_examples
 
+experiment_num = 4
 pe_result_dir = "/home/GuoXingWu/occlusion_veri/PyTorchLearn/experiment/results/thought_3/pe_20220409_142644/"
 analysis = False
 
@@ -51,27 +53,48 @@ if __name__ == '__main__':
         analyze_result()
         exit()
     parameters = []
-    block_sizes = [(32, 32)]
-    occlusion_color = 0
-    # occlusion size is a list of tuple (i, i), i ranges from 0 to 31
-    occlusion_sizes = [(i, i) for i in range(8, 16)]
 
     timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime(time.time()))
 
-    for block_size in block_sizes:
-        for occlusion_size in occlusion_sizes:
-            parameters.append((occlusion_size, occlusion_color, block_size, timestamp))
+    if experiment_num == 3:
+        block_sizes = [(32, 32)]
+        occlusion_color = 0
+        # occlusion size is a list of tuple (i, i), i ranges from 0 to 31
+        occlusion_sizes = [(i, i) for i in range(8, 16)]
+        for block_size in block_sizes:
+            for occlusion_size in occlusion_sizes:
+                parameters.append((occlusion_size, occlusion_color, block_size, timestamp))
 
-    # fixme set processes to 1 on server currently
-    # conduct experiment parallely with concurrent.futures
-    with pebble.ProcessPool(1) as pool:
-        for parameter in parameters:
-            future = pool.schedule(conduct_experiment, parameter)
-            try:
-                future.result(timeout=60 * 60 * 3)
-                print("Parallel Experiment: Complete for {}".format(parameter), flush=True)
-            except TimeoutError:
-                future.cancel()
-                print("Parallel Experiment: Timeout for {}".format(parameter), flush=True)
+        # fixme set processes to 1 on server currently
+        # conduct experiment parallely with concurrent.futures
+        with pebble.ProcessPool(1) as pool:
+            for parameter in parameters:
+                future = pool.schedule(three_marabou_occlusion.conduct_experiment, parameter)
+                try:
+                    future.result(timeout=60 * 60 * 3)
+                    print("Parallel Experiment: Complete for {}".format(parameter), flush=True)
+                except TimeoutError:
+                    future.cancel()
+                    print("Parallel Experiment: Timeout for {}".format(parameter), flush=True)
+    elif experiment_num == 4:
+        block_sizes = [(32, 32)]
+        color_epsilon = 0.5
+        # occlusion size is a list of tuple (i, i), i ranges from 0 to 31
+        occlusion_sizes = [(i, i) for i in range(1, 32)]
+        for block_size in block_sizes:
+            for occlusion_size in occlusion_sizes:
+                parameters.append((occlusion_size, color_epsilon, block_size, timestamp))
+
+        # fixme set processes to 1 on server currently
+        # conduct experiment parallely with concurrent.futures
+        with pebble.ProcessPool(1) as pool:
+            for parameter in parameters:
+                future = pool.schedule(four_marabou_occlusion.conduct_experiment, parameter)
+                try:
+                    future.result(timeout=60 * 60 * 1)
+                    print("Parallel Experiment: Complete for {}".format(parameter), flush=True)
+                except TimeoutError:
+                    future.cancel()
+                    print("Parallel Experiment: Timeout for {}".format(parameter), flush=True)
 
     print("Parallel Experiment: Done!")

@@ -114,12 +114,12 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
     network.setUpperBound(x, x_upper_bound)
     network.setLowerBound(y, y_lower_bound)
     network.setUpperBound(y, y_upper_bound)
-    print(f'x: [{x_lower_bound}, {x_upper_bound}]', )
+    # print(f'x: [{x_lower_bound}, {x_upper_bound}]', )
 
     # iterate over the target block of image
     for i in range(height_offset, height_offset + block_size[0]):
         for j in range(width_offset, width_offset + block_size[1]):
-            print(f'current pixel: {i}, {j}')
+            # print(f'current pixel: {i}, {j}')
             # occlusion point cover (i, j)
             # the constraints should have size like [[eq1, eq2], [eq3, eq4], ...]
             # stand for (eq1 and eq2) or (eq3 and eq4) or ...
@@ -146,8 +146,8 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
             eq4.setScalar(i - occlusion_height + 1)
             eqs.append(eq4)
             constraints.append(eqs)
-            print(f'x <= {j + 1 - epsilon} and x >= {j - occlusion_width + 1} and y <= {i + 1 - epsilon} and '
-                  f'y >= {i - occlusion_height + 1} and image[{i}, {j}] is between +-color_epsilon')
+            # print(f'x <= {j + 1 - epsilon} and x >= {j - occlusion_width + 1} and y <= {i + 1 - epsilon} and '
+            #       f'y >= {i - occlusion_height + 1} and image[{i}, {j}] is between +-color_epsilon')
             # otherwise
             # since don't know how to write unequal constraints
             # change two unequal constraints into four greater equal and less equal constraints
@@ -186,8 +186,8 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
             eq9.setScalar(i - occlusion_height + 1 - epsilon)
             eqs.append(eq9)
             constraints.append(eqs)
-            print(f'(x >= {j + 1} or x <= {j - occlusion_width + 1 - epsilon} or y >= {i + 1} or'
-                  f' y <= {i - occlusion_height + 1 - epsilon}) and image[{i}, {j}] == origin_color')
+            # print(f'(x >= {j + 1} or x <= {j - occlusion_width + 1 - epsilon} or y >= {i + 1} or'
+            #       f' y <= {i - occlusion_height + 1 - epsilon}) and image[{i}, {j}] == origin_color')
             # add constraints to network
             network.addDisjunctionConstraint(constraints)
 
@@ -228,13 +228,13 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
     constraints_calculation_time = constraints_calculation_end_time - constraints_calculation_start_time
 
     verify_start_time = time.monotonic()
-    print("verify start: current label: ", label, flush=True)
-    options = Marabou.createOptions(numWorkers=32, timeoutInSeconds=3600, solveWithMILP=True)
+    print("verify start: current true label: ", label, flush=True)
+    options = Marabou.createOptions(solveWithMILP=True)
     vals = network.solve(verbose=True, options=options)
     verify_end_time = time.monotonic()
     verify_time = verify_end_time - verify_start_time
 
-    print("vals length: ", len(vals), flush=True)
+    # print("vals length: ", len(vals), flush=True)
 
     return vals, constraints_calculation_time, verify_time
 
@@ -324,8 +324,8 @@ def calculate_constrains(image, inputs):
     return constraints
 
 
-def conduct_experiment(occlusion_size, occlusion_color, block_size, pe_timestamp):
-    print("ThreeMarabouOcclusionExperiment: experiment start, occlusion size: ", occlusion_size,
+def conduct_experiment(occlusion_size, color_epsilon, block_size, pe_timestamp):
+    print("FourMarabouOcclusionExperiment: experiment start, occlusion size: ", occlusion_size,
           ", block size: ", block_size)
     img_loader = get_test_images_loader(input_size, output_dim=output_dim, classes=[1, 2, 3, 4, 5, 7, 8])
     iterable_img_loader = iter(img_loader)
@@ -345,7 +345,7 @@ def conduct_experiment(occlusion_size, occlusion_color, block_size, pe_timestamp
         adv_example_list = None
 
         vals, constraints_calculation_time, verify_time = verify_occlusion_by_dividing(image, label, occlusion_size,
-                                                                                       occlusion_color, block_size)
+                                                                                       color_epsilon, block_size)
         results_batch.append(
             {'vals': vals[0], 'constraints_calculation_time': constraints_calculation_time,
              'verify_time': verify_time,
@@ -371,7 +371,7 @@ def conduct_experiment(occlusion_size, occlusion_color, block_size, pe_timestamp
             os.makedirs(dir)
         # save results to file
         result_filepath = dir + f'{model_name}_batchNum_{batch_num}_occlusionSize_{occlusion_size[0]}_' \
-                                            f'{occlusion_size[1]}_occlusionColor_{occlusion_color}_outputDim_' \
+                                            f'{occlusion_size[1]}_occlusionColor_{color_epsilon}_outputDim_' \
                                             f'{output_dim}_blockSize_{block_size[0]}_{block_size[1]}.json'
         with open(result_filepath, 'w') as f:
             json.dump(results, f)

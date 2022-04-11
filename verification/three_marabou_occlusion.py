@@ -58,8 +58,6 @@ def verify_occlusion_by_dividing(image: np.array, label: int, occlusion_size: tu
     total_verify_time = 0
     vals = ['unsat']
 
-    print("current occlusion size: ", occlusion_size)
-
     for i in range(block_num[0]):
         for j in range(block_num[1]):
             print("current block: ", i, j)
