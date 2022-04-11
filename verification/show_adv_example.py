@@ -8,8 +8,8 @@ import json
 import numpy as np
 from matplotlib import pyplot as plt
 
-result_file_dir = '/home/GuoXingWu/occlusion_veri/PyTorchLearn/experiment/results/thought_3/'
-result_filename = 'cnn_model_gtsrb_small_2.onnx_batchNum_1_occlusionSize_2_2_occlusionColor_0_outputDim_7_20220407_230247.json'
+result_file_dir = '/home/GuoXingWu/occlusion_veri/PyTorchLearn/experiment/results/thought_4/pe_20220411_141247/'
+result_filename = 'fnn_model_gtsrb_small.onnx_batchNum_1_occlusionSize_1_1_colorEpsilon_0.001_outputDim_7_blockSize_32_32.json'
 
 
 def read_result_file(filename):
@@ -78,7 +78,20 @@ def show_adv_example(adv_examples, show = range(1)):
         plt.title('origin image')
         plt.suptitle('predicted label: %d, true label: %d, idx: %d, occlusion size: (%s, %s)' % (predicted_label, true_label, idx, occlusion_height, occlusion_width))
         plt.show()
-
+        # count the number of different pixels
+        diff_pixels = 0
+        diff_pixels_pos = []
+        diff_pixels_value = []
+        for i in range(32):
+            for j in range(32):
+                for k in range(3):
+                    if adv_example[i][j][k] != origin_image[i][j][k]:
+                        diff_pixels += 1
+                        diff_pixels_pos.append((i, j, k))
+                        diff_pixels_value.append(adv_example[i][j][k] - origin_image[i][j][k])
+        print("different pixels: ", diff_pixels)
+        print("different pixels position: ", diff_pixels_pos)
+        print("different pixels value: ", diff_pixels_value)
 
 def denormalize_image(image):
     """
