@@ -8,8 +8,8 @@ import json
 import numpy as np
 from matplotlib import pyplot as plt
 
-result_file_dir = '/home/GuoXingWu/occlusion_veri/PyTorchLearn/experiment/results/thought_4/pe_20220411_141247/'
-result_filename = 'fnn_model_gtsrb_small.onnx_batchNum_1_occlusionSize_1_1_colorEpsilon_0.001_outputDim_7_blockSize_32_32.json'
+result_file_dir = '/home/GuoXingWu/occlusion_veri/PyTorchLearn/experiment/results/thought_4/pe_20220411_160905/'
+result_filename = 'cnn_model_gtsrb_small_2.onnx_batchNum_1_occlusionSize_20_20_colorEpsilon_0.01_outputDim_7_blockSize_32_32.json'
 
 
 def read_result_file(filename):
