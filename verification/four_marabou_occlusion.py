@@ -22,7 +22,7 @@ from interpolation import occlusion
 
 # define some global variables
 model_name = "fnn_model_gtsrb_small.onnx"
-occlusion_size = (5, 5)
+occlusion_size = (10, 10)
 color_epsilon = 0.5
 input_size = (32, 32)
 channel = 3
@@ -32,7 +32,7 @@ result_file_dir = '/home/GuoXingWu/occlusion_veri/PyTorchLearn/experiment/result
 timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime(time.time()))
 use_marabou = True
 
-block_size = (32, 32) # the size of a sub verification problem, the area where occlusion can be applied
+block_size = (32, 32)  # the size of a sub verification problem, the area where occlusion can be applied
 
 mean, std = np.array([0.3337, 0.3064, 0.3171]), np.array([0.2672, 0.2564, 0.2629])
 epsilon = 1e-3
@@ -210,25 +210,25 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
 
     # add bounds to output
     # new output constraints using disjunction constraints
-    output_constraints = []
-    for i in range(output_dim):
-        if i == label:
-            continue
-        eq = MarabouCore.Equation(MarabouCore.Equation.GE)
-        eq.addAddend(1, outputs[i])
-        eq.addAddend(-1, outputs[label])
-        eq.setScalar(0)
-        output_constraints.append([eq])
-    network.addDisjunctionConstraint(output_constraints)
-    # # origin output constraints
-    # for i in range(n_outputs):
-    #     if i != label:
-    #         network.addInequality([outputs_flattened[i], outputs_flattened[label]], [1, -1], 0)
+    # output_constraints = []
+    # for i in range(output_dim):
+    #     if i == label:
+    #         continue
+    #     eq = MarabouCore.Equation(MarabouCore.Equation.GE)
+    #     eq.addAddend(1, outputs[i])
+    #     eq.addAddend(-1, outputs[label])
+    #     eq.setScalar(0)
+    #     output_constraints.append([eq])
+    # network.addDisjunctionConstraint(output_constraints)
+    # origin output constraints
+    for i in range(n_outputs):
+        if i != label:
+            network.addInequality([outputs[i], outputs[label]], [1, -1], 0)
     constraints_calculation_end_time = time.monotonic()
     constraints_calculation_time = constraints_calculation_end_time - constraints_calculation_start_time
 
     verify_start_time = time.monotonic()
-    print("verify start: current true label: ", label, flush=True)
+    print("verify start: current label: ", label, flush=True)
     options = Marabou.createOptions(solveWithMILP=True)
     vals = network.solve(verbose=True, options=options)
     verify_end_time = time.monotonic()
@@ -371,8 +371,8 @@ def conduct_experiment(occlusion_size, color_epsilon, block_size, pe_timestamp):
             os.makedirs(dir)
         # save results to file
         result_filepath = dir + f'{model_name}_batchNum_{batch_num}_occlusionSize_{occlusion_size[0]}_' \
-                                            f'{occlusion_size[1]}_occlusionColor_{color_epsilon}_outputDim_' \
-                                            f'{output_dim}_blockSize_{block_size[0]}_{block_size[1]}.json'
+                                f'{occlusion_size[1]}_occlusionColor_{color_epsilon}_outputDim_' \
+                                f'{output_dim}_blockSize_{block_size[0]}_{block_size[1]}.json'
         with open(result_filepath, 'w') as f:
             json.dump(results, f)
             f.write('\n')
@@ -412,38 +412,41 @@ if __name__ == '__main__':
         adversarial_example = None
         adv_example_list = None
 
-        vals, constraints_calculation_time, verify_time = verify_occlusion_by_dividing(image, label, occlusion_size,
-                                                                                       color_epsilon, block_size)
-        results_batch.append(
-            {'vals': vals[0], 'constraints_calculation_time': constraints_calculation_time,
-             'verify_time': verify_time,
-             })
-        if vals[0] == 'sat':
-            adversarial_example = vals[1]
-            # unpack adversarial example to a list
-            # adversarial_example is a dict{int, float}
-            # key is the index of the variable in the network
-            # value is the value of the variable
-            adv_example_list = [adversarial_example[i] for i in range(channel * input_size[0] * input_size[1])]
-            isRobust = False
-            # break
-        # for target_label in range(output_dim):
-        #     if target_label == label:
-        #         continue
-        #     vals, constraints_calculation_time, verify_time = verify_occlusion_with_fixed_size(image, target_label, occlusion_size, occlusion_color)
-        #     results_batch.append(
-        #         {'vals': vals[0], 'constraints_calculation_time': constraints_calculation_time, 'verify_time': verify_time,
-        #          'target_label': target_label})
-        #     if vals[0] == 'sat':
-        #         adversarial_example = vals[1]
-        #         # unpack adversarial example to a list
-        #         # adversarial_example is a dict{int, float}
-        #         # key is the index of the variable in the network
-        #         # value is the value of the variable
-        #         adv_example_list = [adversarial_example[i] for i in range(channel * input_size[0] * input_size[1])]
-        #         predicted_label = target_label
-        #         isRobust = False
-        #         break
+        # vals, constraints_calculation_time, verify_time = verify_occlusion_by_dividing(image, label, occlusion_size,
+        #                                                                                color_epsilon, block_size)
+        # results_batch.append(
+        #     {'vals': vals[0], 'constraints_calculation_time': constraints_calculation_time,
+        #      'verify_time': verify_time,
+        #      })
+        # if vals[0] == 'sat':
+        #     adversarial_example = vals[1]
+        #     # unpack adversarial example to a list
+        #     # adversarial_example is a dict{int, float}
+        #     # key is the index of the variable in the network
+        #     # value is the value of the variable
+        #     adv_example_list = [adversarial_example[i] for i in range(channel * input_size[0] * input_size[1])]
+        #     isRobust = False
+        for target_label in range(output_dim):
+            if target_label == label:
+                continue
+            vals, constraints_calculation_time, verify_time = verify_occlusion_by_dividing(image, target_label,
+                                                                                           occlusion_size,
+                                                                                           color_epsilon, block_size)
+            results_batch.append(
+                {'vals': vals[0], 'constraints_calculation_time': constraints_calculation_time,
+                 'verify_time': verify_time,
+                 'target_label': target_label})
+            if vals[0] == 'sat':
+                adversarial_example = vals[1]
+                # unpack adversarial example to a list
+                # adversarial_example is a dict{int, float}
+                # key is the index of the variable in the network
+                # value is the value of the variable
+                adv_example_list = [adversarial_example[i] for i in range(channel * input_size[0] * input_size[1])]
+                predicted_label = target_label
+                isRobust = False
+                break
+
         total_time = time.monotonic() - start_time
 
         results.append(
