@@ -22,8 +22,8 @@ from interpolation import occlusion
 
 # define some global variables
 model_name = "fnn_model_gtsrb_small.onnx"
-occlusion_size = (10, 10)
-color_epsilon = 0.5
+occlusion_size = (16, 16)
+color_epsilon = 0.1
 input_size = (32, 32)
 channel = 3
 output_dim = 7
@@ -75,7 +75,7 @@ def verify_occlusion_by_dividing(image: np.array, label: int, occlusion_size: tu
     return vals, total_constraints_calculation_time, total_verify_time
 
 
-# thought #3 in the doc
+# thought #4 in the doc
 def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size: tuple, color_epsilon: float,
                                      block_size: tuple, width_offset, height_offset):
     """
@@ -204,8 +204,8 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
                     fixed_pixels += 1
                 else:
                     # must add a small value to avoid constraints conflict issues
-                    network.setLowerBound(inputs[k, i, j], image[k][i][j] - epsilon)
-                    network.setUpperBound(inputs[k, i, j], image[k][i][j] + epsilon)
+                    network.setLowerBound(inputs[k, i, j], image[k][i][j] - color_epsilon)
+                    network.setUpperBound(inputs[k, i, j], image[k][i][j] + color_epsilon)
     print("fixed pixels: ", fixed_pixels)
 
     # add bounds to output
@@ -327,7 +327,7 @@ def calculate_constrains(image, inputs):
 def conduct_experiment(occlusion_size, color_epsilon, block_size, pe_timestamp):
     print("FourMarabouOcclusionExperiment: experiment start, occlusion size: ", occlusion_size,
           ", block size: ", block_size)
-    img_loader = get_test_images_loader(input_size, output_dim=output_dim, classes=[1, 2, 3, 4, 5, 7, 8])
+    img_loader = get_test_images_loader(input_size, output_dim=output_dim, classes=range(0, output_dim))
     iterable_img_loader = iter(img_loader)
 
     results = []
@@ -381,7 +381,7 @@ def conduct_experiment(occlusion_size, color_epsilon, block_size, pe_timestamp):
 
 
 if __name__ == '__main__':
-    img_loader = get_test_images_loader(input_size, output_dim=output_dim, classes=[1, 2, 3, 4, 5, 7, 8])
+    img_loader = get_test_images_loader(input_size, output_dim=output_dim, classes=range(0, output_dim))
     iterable_img_loader = iter(img_loader)
 
     if not use_marabou:
