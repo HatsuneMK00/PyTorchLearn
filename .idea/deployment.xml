@@ -5,8 +5,11 @@
       <paths name="GuoXingWu@219.228.60.69:22">
         <serverdata>
           <mappings>
-            <mapping deploy="/tmp/pycharm_project_368" local="$PROJECT_DIR$" />
+            <mapping deploy="/home/GuoXingWu/pycharm_project_368" local="$PROJECT_DIR$" />
           </mappings>
+          <excludedPaths>
+            <excludedPath local="true" path="$PROJECT_DIR$/data" />
+          </excludedPaths>
         </serverdata>
       </paths>
     </serverData>
