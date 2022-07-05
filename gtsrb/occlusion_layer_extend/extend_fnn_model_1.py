@@ -31,28 +31,31 @@ def save_extended_model():
     model.load_state_dict(torch.load('../../model/fnn_model_gtsrb_small.pth', map_location=torch.device('cpu')))
     image = get_a_test_image()
     # add a new custom layer OcclusionLayer in front of the model
-    occlusion_layer = OcclusionLayer(image=image)
+    occlusion_layer = OcclusionLayer(image=image, first_layer=list(model.children())[0])
     extended_model = nn.Sequential(
         occlusion_layer,
-        *list(model.children())
+        *(list(model.children())[1:])
     )
 
+    input = torch.Tensor([1, 1])
+    output = extended_model(input)
+    print(output)
     # save extended model to pth format
-    torch.save(extended_model.state_dict(), '../../model/extended/fnn_model_gtsrb_small_extended.pth')
+    torch.save(extended_model.state_dict(), '../../model/extended/fnn_model_gtsrb_small_extended_shrink.pth')
 
 def save_extended_model_onnx():
     model = SmallDNNModel()
     model.load_state_dict(torch.load('../../model/fnn_model_gtsrb_small.pth', map_location=torch.device('cpu')))
     image = get_a_test_image()
     # add a new custom layer OcclusionLayer in front of the model
-    occlusion_layer = OcclusionLayer(image=image)
+    occlusion_layer = OcclusionLayer(image=image, first_layer=list(model.children())[0])
     extended_model = nn.Sequential(
         occlusion_layer,
-        *list(model.children())
+        *(list(model.children())[1:])
     )
     extended_model = extended_model.to(torch.device('cpu'))
     dummy_input = torch.Tensor([1, 1])
-    onnx_model_filename = 'fnn_model_gtsrb_small_extended.onnx'
+    onnx_model_filename = 'fnn_model_gtsrb_small_extended_shrink.onnx'
     torch.onnx.export(extended_model, dummy_input, '../../model/extended/' + onnx_model_filename)
 
 
@@ -90,7 +93,7 @@ def restore_extended_model_onnx():
 
 
 def restore_and_run_with_marabou():
-    network = Marabou.read_onnx('../../model/extended/fnn_model_gtsrb_small_extended.onnx')
+    network = Marabou.read_onnx('../../model/extended/fnn_model_gtsrb_small_extended_shrink.onnx')
     input = np.array([1, 1]).astype(np.float32)
     output = network.evaluate(input, useMarabou=True)
     print(output)
@@ -105,7 +108,7 @@ def restore_and_run_with_marabou_baseline():
 
 
 def restore_and_verify_with_marabou():
-    label = 1
+    label = 0
 
     network = Marabou.read_onnx('../../model/extended/fnn_model_gtsrb_small_extended.onnx')
     inputs = network.inputVars[0]

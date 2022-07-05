@@ -11,19 +11,19 @@ import torch.nn as nn
 OUTPUT_SIZE = 7
 
 class OcclusionLayer(nn.Module):
-    def __init__(self, image):
+    def __init__(self, image, first_layer):
         super(OcclusionLayer, self).__init__()
         image_channel, image_height, image_width = image.shape
         self.fc1 = OcclusionFirstLayer(size_in=2, size_out=image_height * 2 + image_width * 2)
         self.fc2 = OcclusionSecondLayer(size_in=self.fc1.size_out, size_out=self.fc1.size_out // 2)
         self.fc3 = OcclusionThirdLayer(size_in=self.fc2.size_out, size_out=image_channel * image_width * image_height, image_shape=image.shape)
-        self.fc4 = OcclusionFourthLayer(size_in=self.fc3.size_out, size_out=self.fc3.size_out, image=image)
+        self.fc4 = OcclusionFourthLayer(size_in=self.fc3.size_out, size_out=self.fc3.size_out, image=image, model_first_layer=first_layer)
 
     def forward(self, x):
         x = torch.relu(self.fc1(x))
         x = torch.relu(self.fc2(x))
         x = torch.relu(self.fc3(x))
-        x = self.fc4(x)
+        x = torch.relu(self.fc4(x))
         return x
 
 class OcclusionFirstLayer(nn.Module):
@@ -130,12 +130,14 @@ class OcclusionThirdLayer(nn.Module):
 
 
 class OcclusionFourthLayer(nn.Module):
-    def __init__(self, size_in, size_out, image):
+    def __init__(self, size_in, size_out, image, model_first_layer):
         super().__init__()
         self.size_in = size_in
-        self.size_out = size_out
+        self.size_out = model_first_layer.out_features
         self.image = image
         weights, bias = self.init_weights_bias(size_in, size_out, image)
+        weights = torch.matmul(model_first_layer.weight, weights)
+        bias = model_first_layer.bias + torch.matmul(model_first_layer.weight, bias)
         self.weights = nn.Parameter(weights, requires_grad=False)
         self.bias = nn.Parameter(bias, requires_grad=False)
 
