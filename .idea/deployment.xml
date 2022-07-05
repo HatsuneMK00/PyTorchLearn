@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="GuoXingWu@219.228.60.69:22" remoteFilesAllowedToDisappearOnAutoupload="false">
+  <component name="PublishConfigData" autoUpload="Always" serverName="GuoXingWu@219.228.60.13:22" remoteFilesAllowedToDisappearOnAutoupload="false">
     <serverData>
-      <paths name="GuoXingWu@219.228.60.69:22">
+      <paths name="GuoXingWu@219.228.60.13:22">
         <serverdata>
           <mappings>
             <mapping deploy="/home/GuoXingWu/pycharm_project_368" local="$PROJECT_DIR$" />
