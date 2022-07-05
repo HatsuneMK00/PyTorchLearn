@@ -31,33 +31,36 @@ def save_extended_model():
     model.load_state_dict(torch.load('../../model/fnn_model_gtsrb_small.pth', map_location=torch.device('cpu')))
     image = get_a_test_image()
     # add a new custom layer OcclusionLayer in front of the model
-    occlusion_layer = OcclusionLayer(image=image)
+    occlusion_layer = OcclusionLayer(image=image, occlusion_color=0, first_layer=list(model.children())[0])
     extended_model = nn.Sequential(
         occlusion_layer,
-        *list(model.children())
+        *list(model.children())[1:]
     )
     print(extended_model)
-    input = torch.tensor([1.0, 1.0, 1.0, 1.0, 0.0])
+    input = torch.tensor([1.0, 1.0, 1.0, 1.0])
     output = extended_model(input)
+    origin_output = model(image)
     print(output)
+    print("origin: ")
+    print(origin_output)
 
     # save extended model to pth format
-    torch.save(extended_model.state_dict(), '../../model/extended/v3/fnn_model_gtsrb_small_extended.pth')
+    torch.save(extended_model.state_dict(), '../../model/extended/v3.1/fnn_model_gtsrb_small_extended_shrink.pth')
 
 def save_extended_model_onnx():
     model = SmallDNNModel()
     model.load_state_dict(torch.load('../../model/fnn_model_gtsrb_small.pth', map_location=torch.device('cpu')))
     image = get_a_test_image()
     # add a new custom layer OcclusionLayer in front of the model
-    occlusion_layer = OcclusionLayer(image=image)
+    occlusion_layer = OcclusionLayer(image=image, occlusion_color=0, first_layer=list(model.children())[0])
     extended_model = nn.Sequential(
         occlusion_layer,
-        *list(model.children())
+        *list(model.children())[1:]
     )
     extended_model = extended_model.to(torch.device('cpu'))
-    dummy_input = torch.Tensor([1, 1])
-    onnx_model_filename = 'fnn_model_gtsrb_small_extended.onnx'
-    torch.onnx.export(extended_model, dummy_input, '../../model/extended/' + onnx_model_filename)
+    dummy_input = torch.tensor([1.0, 1.0, 1.0, 1.0])
+    onnx_model_filename = 'fnn_model_gtsrb_small_extended_shrink.onnx'
+    torch.onnx.export(extended_model, dummy_input, '../../model/extended/v3.1/' + onnx_model_filename)
 
 
 
@@ -76,26 +79,16 @@ def restore_extended_model():
 
 
 def restore_extended_model_onnx():
-    transform = transforms.Compose([
-        transforms.Resize((32, 32)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.3337, 0.3064, 0.3171], std=[0.2672, 0.2564, 0.2629])
-    ])
-    test_data = GTSRB(root_dir='../../data/', train=False, transform=transform, classes=[1, 2, 3, 4, 5, 7, 8])
-    # create data loader for evaluating
-    test_loader = data.DataLoader(dataset=test_data, batch_size=1, shuffle=False)
-    samples, labels = iter(test_loader).next()
-
-    ort_session = onnxruntime.InferenceSession('../../model/extended/fnn_model_gtsrb_small_extended.onnx')
+    ort_session = onnxruntime.InferenceSession('../../model/extended/v3/fnn_model_gtsrb_small_extended_shrink.onnx')
     input_name = ort_session.get_inputs()[0].name
-    input = np.array([1, 1]).astype(np.float32)
+    input = np.array([1, 1, 1, 1]).astype(np.float32)
     output = ort_session.run(None, {input_name: input})
     print(output)
 
 
 def restore_and_run_with_marabou():
-    network = Marabou.read_onnx('../../model/extended/fnn_model_gtsrb_small_extended.onnx')
-    input = np.array([1, 1]).astype(np.float32)
+    network = Marabou.read_onnx('../../model/extended/v3.1/fnn_model_gtsrb_small_extended_shrink.onnx')
+    input = np.array([1, 1, 1, 1]).astype(np.float32)
     output = network.evaluate(input, useMarabou=True)
     print(output)
 
@@ -109,23 +102,27 @@ def restore_and_run_with_marabou_baseline():
 
 
 def restore_and_verify_with_marabou():
-    label = 1
+    label = 5
 
-    network = Marabou.read_onnx('../../model/extended/fnn_model_gtsrb_small_extended.onnx')
+    network = Marabou.read_onnx('../../model/extended/v3.1/fnn_model_gtsrb_small_extended_shrink.onnx')
     inputs = network.inputVars[0]
     print(inputs.shape)
     outputs = network.outputVars
     print(outputs.shape)
     n_outputs = outputs.flatten().shape[0]
     print(n_outputs)
-    network.setLowerBound(inputs[0], 1)
-    network.setUpperBound(inputs[0], 30)
-    network.setLowerBound(inputs[1], 1)
-    network.setUpperBound(inputs[1], 30)
+    network.setLowerBound(inputs[0], 8)
+    network.setUpperBound(inputs[0], 18)
+    network.setLowerBound(inputs[1], 2)
+    network.setUpperBound(inputs[1], 2)
+    network.setLowerBound(inputs[2], 1)
+    network.setUpperBound(inputs[2], 10)
+    network.setLowerBound(inputs[3], 2)
+    network.setUpperBound(inputs[3], 2)
 
     for i in range(n_outputs):
         if i != label:
-            network.addInequality([outputs[i], outputs[label]], [1, -1], 0)
+            network.addInequality([outputs[i], outputs[label]], [1, -1], -1e-6)
     # output_constraints = []
     # for i in range(7):
     #     if i == label:
@@ -137,7 +134,8 @@ def restore_and_verify_with_marabou():
     #     output_constraints.append([eq])
     # network.addDisjunctionConstraint(output_constraints)
 
-    vals = network.solve(verbose=True)
+    options = Marabou.createOptions(solveWithMILP=False)
+    vals = network.solve(verbose=True, options=options)
     print("verification end")
     print("vals 0" + vals[0])
     print("vals 1")
@@ -145,12 +143,11 @@ def restore_and_verify_with_marabou():
 
 
 if __name__ == '__main__':
-    save_extended_model()
-    # restore_extended_model()
+    # save_extended_model()
     # save_extended_model_onnx()
     # restore_extended_model_onnx()
     # restore_and_run_with_marabou()
-    # restore_and_verify_with_marabou()
+    restore_and_verify_with_marabou()
     # restore_and_run_with_marabou_baseline()
     # # load pytorch model from model/fnn_model_gtsrb_small.pth
     # model = SmallDNNModel()
