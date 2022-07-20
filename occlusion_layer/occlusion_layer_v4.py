@@ -11,19 +11,19 @@ OUTPUT_SIZE = 7
 
 
 class OcclusionLayer(nn.Module):
-    def __init__(self, image, occlusion_color, first_layer):
+    def __init__(self, image, first_layer):
         super(OcclusionLayer, self).__init__()
         image_channel, image_height, image_width = image.shape
         self.fc1 = OcclusionFirstLayer(size_in=4, size_out=image_height * 2 + image_width * 2)
         self.fc2 = OcclusionSecondLayer(size_in=self.fc1.size_out, size_out=self.fc1.size_out // 2)
-        self.fc3 = OcclusionThirdLayer(size_in=self.fc2.size_out, size_out=image_width * image_height * 2, image_shape=image.shape)
-        self.fc4 = OcclusionFourthLayer(size_in=self.fc3.size_out, size_out=image_channel * image_width * image_height, image=image, occlusion_color=occlusion_color, model_first_layer=first_layer)
+        self.fc3 = OcclusionThirdLayer(size_in=self.fc2.size_out, size_out=image_width * image_height, image_shape=image.shape)
+        self.fc4 = OcclusionFourthLayer(size_in=self.fc3.size_out, size_out=image_channel * image_width * image_height, image=image, model_first_layer=first_layer)
 
     def forward(self, x, epsilons):
         x = torch.relu(self.fc1(x))
         x = torch.relu(self.fc2(x))
-        x = torch.relu(self.fc3(x, epsilons))
-        x = torch.relu(self.fc4(x))
+        x = torch.relu(self.fc3(x))
+        x = torch.relu(self.fc4(x, epsilons))
         return x
 
 class OcclusionFirstLayer(nn.Module):
@@ -89,61 +89,51 @@ class OcclusionThirdLayer(nn.Module):
         self.size_out = size_out
         self.image_shape = image_shape
         weights, bias = self.init_weights_bias(size_in, size_out, image_shape)
-        weights_eps, bias_eps = self.init_weight_bias_for_epsilons(size_in_eps=1, size_out=size_out)
-        self.weights = nn.Parameter(weights, requires_grad=False)
-        self.bias = nn.Parameter(bias, requires_grad=False)
-        self.weights_eps = nn.Parameter(weights_eps, requires_grad=False)
-        self.bias_eps = nn.Parameter(bias_eps, requires_grad=False)
-
-    def forward(self, x, epsilon):
-        return torch.matmul(self.weights, x) + self.bias + torch.matmul(self.weights_eps, epsilon) + self.bias_eps
-
-    def init_weights_bias(self, size_in, size_out, image_shape):
-        weights = torch.zeros(size_out, size_in)
-        _, image_height, image_width = image_shape
-        input_block_size = (size_in - 1) // 2
-        block_size = size_out
-        # output has only 1 part for occlusion
-        for i in range(block_size):
-            r, c = (i // 2) // image_width, (i // 2) % image_width
-            if i % 2 == 0:
-                weights[i, -1] = 1
-            else:
-                weights[i, -1] = -1
-            weights[i, r] = 1
-            weights[i, input_block_size + c] = 1
-
-        bias = -torch.ones(block_size) * 2
-
-        return weights, bias
-
-
-    def init_weight_bias_for_epsilons(self, size_in_eps, size_out):
-        weights = torch.zeros(size_out, size_in_eps)
-        for i in range(size_out):
-            if i % 2 == 0:
-                weights[i, 0] = 1
-            else:
-                weights[i, 0] = -1
-        return weights, torch.zeros(size_out)
-
-
-class OcclusionFourthLayer(nn.Module):
-    def __init__(self, size_in, size_out, image, occlusion_color, model_first_layer):
-        super().__init__()
-        self.size_in = size_in
-        self.size_out = model_first_layer.out_features
-        self.image = image
-        weights, bias = self.init_weights_bias(size_in, size_out, image, occlusion_color)
-        weights = torch.matmul(model_first_layer.weight, weights)
-        bias = model_first_layer.bias + torch.matmul(model_first_layer.weight, bias)
+        # weights_eps, bias_eps = self.init_weight_bias_for_epsilons(size_in_eps=1, size_out=size_out)
         self.weights = nn.Parameter(weights, requires_grad=False)
         self.bias = nn.Parameter(bias, requires_grad=False)
 
     def forward(self, x):
         return torch.matmul(self.weights, x) + self.bias
 
-    def init_weights_bias(self, size_in, size_out, image, occlusion_color):
+    def init_weights_bias(self, size_in, size_out, image_shape):
+        weights = torch.zeros(size_out, size_in)
+        _, image_height, image_width = image_shape
+        input_block_size = size_in // 2
+        block_size = size_out
+        # output has only 1 part for occlusion
+        for i in range(block_size):
+            r, c = i // image_width, i % image_width
+            weights[i, r] = 1
+            weights[i, input_block_size + c] = 1
+
+        bias = -torch.ones(block_size) * 1
+
+        return weights, bias
+
+
+class OcclusionFourthLayer(nn.Module):
+    def __init__(self, size_in, size_out, image, model_first_layer):
+        super().__init__()
+        self.size_in = size_in
+        self.size_out = model_first_layer.out_features
+        self.image = image
+        weights, bias = self.init_weights_bias(size_in, size_out, image)
+        weights = torch.matmul(model_first_layer.weight, weights)
+        bias = model_first_layer.bias + torch.matmul(model_first_layer.weight, bias)
+        self.weights = nn.Parameter(weights, requires_grad=False)
+        self.bias = nn.Parameter(bias, requires_grad=False)
+        weights_eps, bias_eps = self.init_weight_bias_for_epsilons(size_in_eps=1, size_out=size_out)
+        weights_eps = torch.matmul(model_first_layer.weight, weights_eps)
+        bias_eps = model_first_layer.bias + torch.matmul(model_first_layer.weight, bias_eps)
+        self.weights_eps = nn.Parameter(weights_eps)
+        self.bias_eps = nn.Parameter(bias_eps)
+
+
+    def forward(self, x, epsilon):
+        return torch.matmul(self.weights, x) + self.bias + torch.matmul(self.weights_eps, epsilon) + self.bias_eps
+
+    def init_weights_bias(self, size_in, size_out, image):
         # assert image is a tensor
         assert isinstance(image, torch.Tensor)
         # flatten image into 1d
@@ -152,8 +142,15 @@ class OcclusionFourthLayer(nn.Module):
         weights = torch.zeros(size_out, size_in)
         for channel in range(image_channel):
             for i in range(size_out // image_channel):
-                weights[channel * image_height * image_width + i, i * 2] = 1
-                weights[channel * image_height * image_width + i, i * 2 + 1] = -1
+                weights[channel * image_height * image_width + i, i] = 1
         bias = torch.ones(size_out) * image_flatten
 
+        return weights, bias
+
+    def init_weight_bias_for_epsilons(self, size_in_eps, size_out):
+        weights = torch.zeros(size_out, size_in_eps)
+        bias = -torch.ones(size_out)
+        for i in range(size_out):
+            # assume size_in_eps is 1
+            weights[i, 0] = 1
         return weights, bias
