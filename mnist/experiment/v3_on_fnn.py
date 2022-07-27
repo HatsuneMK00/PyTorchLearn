@@ -13,7 +13,7 @@ from maraboupy import Marabou, MarabouCore
 
 from mnist.fnn_model_1 import FNNModel1
 from occlusion_layer.occlusion_layer_v3 import OcclusionLayer
-from find_robust_lb import find_robust_lower_bound
+from find_robust_lb import find_robust_lower_bound, determine_robustness
 import signal
 
 result = []
@@ -81,7 +81,7 @@ if __name__ == '__main__':
     iter_on_loader = iter(test_loader)
     model = FNNModel1()
     model.load_state_dict(torch.load('../../model/fnn_model_mnist_1.pth', map_location=torch.device('cpu')))
-    for i in range(20):
+    for i in range(1):
         print("=" * 20)
         print("image {}:".format(i))
         instrument = {}
@@ -89,9 +89,6 @@ if __name__ == '__main__':
 
         total_time_start = time.monotonic()
         image, label = iter_on_loader.next()
-
-        if i < 10 or i == 12 or i == 14 or i == 18:
-            continue
 
         image = image.reshape(1, 28, 28)
         label = label.item()
@@ -101,10 +98,10 @@ if __name__ == '__main__':
         instrument['save_model_duration'] = save_model_duration
 
         verify_start = time.monotonic()
-        lower_bound = find_robust_lower_bound(5, 10, (1, 28, 28), label, model_filepath, verify_with_marabou)
+        robusts = determine_robustness(8, label, model_filepath, verify_with_marabou)
         verify_duration = time.monotonic() - verify_start
         instrument['verify_duration'] = verify_duration
-        instrument['lower_bound'] = lower_bound
+        instrument['robusts'] = robusts
         print(instrument)
         result.append(instrument)
 

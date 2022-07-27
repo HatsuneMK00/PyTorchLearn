@@ -7,8 +7,9 @@ import pebble
 
 
 def determine_robustness(size, true_label, model, task):
-    colors = [0, 0.2, 0.4, 0.6, 0.8, 1]
-    for c in range(5):
+    colors = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+    robusts = []
+    for c in range(10):
         position_range = (1 ,28 - size + 1)
         step = (position_range[1] - position_range[0] + 1) // 4
         position = [1, step, 2 * step, 3 * step, position_range[1]]
@@ -38,6 +39,8 @@ def determine_robustness(size, true_label, model, task):
                         robust = False
                         break
             print("label {} end in {}".format(label, time.monotonic() - start_time))
+        robusts.append(robust)
+    return robusts
 
 def find_robust_lower_bound(l, u, image_size, true_label, model, task):
     lower = l
