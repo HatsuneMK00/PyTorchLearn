@@ -81,7 +81,7 @@ if __name__ == '__main__':
     iter_on_loader = iter(test_loader)
     model = FNNModel1()
     model.load_state_dict(torch.load('../../model/fnn_model_mnist_1.pth', map_location=torch.device('cpu')))
-    for i in range(1):
+    for i in range(10):
         print("=" * 20)
         print("image {}:".format(i))
         instrument = {}
@@ -92,16 +92,25 @@ if __name__ == '__main__':
 
         image = image.reshape(1, 28, 28)
         label = label.item()
+
+        labels = model(image)
+        labels = labels[0].argsort(descending=True)
+        spurious_labels = []
+        for l in labels:
+            if l.item() != label:
+                spurious_labels.append(l.item())
+
+        print("spurious label: ", spurious_labels)
         save_model_start = time.monotonic()
         model_filepath = save_extended_model_onnx(image, model)
         save_model_duration = time.monotonic() - save_model_start
         instrument['save_model_duration'] = save_model_duration
 
         verify_start = time.monotonic()
-        robusts = determine_robustness(8, label, model_filepath, verify_with_marabou)
+        lower_bound = find_robust_lower_bound(5, 10, spurious_labels, model_filepath, verify_with_marabou)
         verify_duration = time.monotonic() - verify_start
         instrument['verify_duration'] = verify_duration
-        instrument['robusts'] = robusts
+        instrument['lower_bound'] = lower_bound
         print(instrument)
         result.append(instrument)
 

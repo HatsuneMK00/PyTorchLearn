@@ -42,9 +42,9 @@ def determine_robustness(size, true_label, model, task):
         robusts.append(robust)
     return robusts
 
-def find_robust_lower_bound(l, u, image_size, true_label, model, task):
+def find_robust_lower_bound(l, u, labels, model, task):
     lower = l
-    _, image_height, image_width = image_size
+    _, image_height, image_width = (1, 28, 28)
     upper = u
     upper_last_sat = upper
     iter_count = 0
@@ -54,12 +54,10 @@ def find_robust_lower_bound(l, u, image_size, true_label, model, task):
         step = (position_range[1] - position_range[0] + 1) // 4
         position = [1, step, 2 * step, 3 * step, position_range[1]]
         robust = True
-        for label in range(10):
+        for label in labels:
             start_time = time.monotonic()
             if not robust:
                 break
-            if label == true_label:
-                continue
             with pebble.ProcessPool(1) as pool:
                 for i in range(4):
                     a = (position[i], position[i + 1])
