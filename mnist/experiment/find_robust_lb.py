@@ -6,20 +6,18 @@ import time
 import pebble
 
 
-def determine_robustness(size, true_label, model, task):
-    colors = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+def determine_robustness(size, labels, model, task):
+    colors = [0, 0.2, 0.4, 0.6, 0.8, 1]
     robusts = []
-    for c in range(10):
+    for c in range(5):
         position_range = (1 ,28 - size + 1)
         step = (position_range[1] - position_range[0] + 1) // 4
         position = [1, step, 2 * step, 3 * step, position_range[1]]
         robust = True
-        for label in range(10):
+        for label in labels:
             start_time = time.monotonic()
             if not robust:
                 break
-            if label == true_label:
-                continue
             with pebble.ProcessPool(1) as pool:
                 color = (colors[c], colors[c + 1])
                 for i in range(4):
@@ -30,7 +28,9 @@ def determine_robustness(size, true_label, model, task):
                     future = pool.schedule(task, (model, label, a, b, size_a, size_b, color))
                     try:
                         print('label {}, a&b {}, size_a&b {}, color {}'.format(label, a, size_a, color), flush=True)
+                        task_start_time = time.monotonic()
                         result = future.result(timeout=60)
+                        print("task end in ", time.monotonic() - task_start_time)
                     except concurrent.futures.TimeoutError:
                         future.cancel()
                         print("timeout", flush=True)
@@ -67,7 +67,9 @@ def find_robust_lower_bound(l, u, labels, model, task):
                     future = pool.schedule(task, (model, label, a, b, size_a, size_b, (0, 0)))
                     try:
                         print('iteration {}: label {}, a&b {}, size_a&b {}'.format(iter_count, label, a, size_a), flush=True)
+                        task_start_time = time.monotonic()
                         result = future.result(timeout=60)
+                        print("task end in ", time.monotonic() - task_start_time)
                     except concurrent.futures.TimeoutError:
                         future.cancel()
                         print("iteration {} timeout".format(iter_count), flush=True)
@@ -87,3 +89,39 @@ def find_robust_lower_bound(l, u, labels, model, task):
     return upper
 
 
+def determine_robustness_color_fixed(sizes, labels, model, task):
+    robusts = []
+    for size in range(sizes[0], sizes[1] + 1):
+        size_start_time = time.monotonic()
+        position_range = (1, 28 - size + 1)
+        step = (position_range[1] - position_range[0] + 1) // 4
+        position = [(step, 2 * step), (2 * step, 3 * step), (1, step), (3 * step, position_range[1])]
+        robust = True
+        for label in labels:
+            start_time = time.monotonic()
+            if not robust:
+                break
+            with pebble.ProcessPool(1) as pool:
+                for i in range(4):
+                    a = position[i]
+                    b = position[i]
+                    size_a = (size, size)
+                    size_b = (size, size)
+                    color = (0, 0)
+                    future = pool.schedule(task, (model, label, a, b, size_a, size_b, color))
+                    try:
+                        print('label {}, a&b {}, size_a&b {}, color {}'.format(label, a, size_a, color), flush=True)
+                        task_start_time = time.monotonic()
+                        result = future.result(timeout=60)
+                        print("task end in ", time.monotonic() - task_start_time)
+                    except concurrent.futures.TimeoutError:
+                        future.cancel()
+                        print("timeout", flush=True)
+                        result = 'unsat'  # To keep format with return value of task
+                    if result == 'sat':
+                        robust = False
+                        break
+            print("label {} end in {}".format(label, time.monotonic() - start_time))
+        robusts.append(robust)
+        print("size {} end in {}".format(size, time.monotonic() - size_start_time))
+    return robusts
