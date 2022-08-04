@@ -7,6 +7,7 @@ import torch.nn as nn
 from torchvision import datasets
 from torchvision import transforms
 import torch.utils.data as data
+from matplotlib import pyplot as plt
 from maraboupy import Marabou, MarabouCore
 
 import time
@@ -28,11 +29,31 @@ class ExtendedModel(nn.Module):
         return x
 
 
+def show_occluded_image():
+    model = FNNModel1()
+    model.load_state_dict(torch.load('../../model/fnn_model_mnist_1.pth', map_location=torch.device('cpu')))
+    image, label = get_a_test_image()
+    occlusion_layer = OcclusionLayer(image=image, first_layer=list(model.children())[0])
+    input = torch.tensor([10.0, 10.0, 10.0, 10.0])
+    epsilons =  torch.ones(28 * 28) * -0.1
+    occluded_image = occlusion_layer(input, epsilons)
+    plt.subplot(1, 2, 1)
+    # convert torch into numpy array
+    occluded_image = occluded_image.numpy()
+    occluded_image = occluded_image.reshape(28, 28)
+    plt.imshow(occluded_image)
+    plt.subplot(1, 2, 2)
+    image = image.numpy()
+    image = image.reshape(28, 28)
+    plt.imshow(image)
+    plt.show()
+
+
 def save_extended_model_onnx(image, model):
     occlusion_layer = OcclusionLayer(image=image, first_layer=list(model.children())[0])
     extended_model = ExtendedModel(occlusion_layer, model)
     extended_model = extended_model.to(torch.device('cpu'))
-    dummy_input = (torch.tensor([1.0, 1.0, 1.0, 1.0]), torch.ones(28 * 28) * 0.01)
+    dummy_input = (torch.tensor([1.0, 1.0, 1.0, 1.0]), torch.ones(28 + 28) * 0.01)
     onnx_model_filename = 'tmp/v4/' + 'fnn_model_mnist_1_extended_shrink.onnx'
     torch.onnx.export(extended_model, dummy_input, onnx_model_filename)
     return onnx_model_filename
@@ -78,12 +99,12 @@ def verify_with_marabou(model_filepath, label, a, b, size_a, size_b, epsilon):
     #     output_constraints.append([eq])
     # network.addDisjunctionConstraint(output_constraints)
 
-    options = Marabou.createOptions(solveWithMILP=False, verbosity=0)
+    options = Marabou.createOptions(solveWithMILP=True, verbosity=1)
     vals = network.solve(options=options)
     print("verification end")
     print("vals 0" + vals[0])
     # print("vals 1")
-    print(vals[1])
+    # print(vals[1])
     return vals[0]
 
 
@@ -135,24 +156,31 @@ def baseline_of_marabou():
         # iterate through the inputs and set some equalities
         for i in range(n_inputs):
             val = flattened_image[i]
-            network.setLowerBound(inputs_flattened[i], val - epsilon)
-            network.setUpperBound(inputs_flattened[i], val + epsilon)
+            for i in range(28):
+                for j in range(28):
+                    if i >= 10 and i < 20 and j >= 10 and j < 20:
+                        network.setLowerBound(inputs_flattened[i * 28 + j], val)
+                        network.setUpperBound(inputs_flattened[i * 28 + j], val + epsilon)
+                    else:
+                        network.setLowerBound(inputs_flattened[i * 28 + j], val)
+                        network.setUpperBound(inputs_flattened[i * 28 + j], val)
 
         # iterate through the outputs and set some equalities
         for i in range(n_outputs):
             if i != label:
                 network.addInequality([outputs_flattened[i], outputs_flattened[label]], [1, -1], -1e-6)
 
-        vals = network.solve(verbose=0)
+        vals = network.solve(verbose=1)
         print("vals: ", vals)
 
     network = Marabou.read_onnx('../../model/fnn_model_mnist_2.onnx')
     image, label = get_a_test_image()
-    epsilon = 0.2
+    epsilon = 0.5
 
     find_epsilon(network, image, 3, epsilon)
 
 if __name__ == '__main__':
+    # show_occluded_image()
     # baseline_of_marabou()
     test_loader = data.DataLoader(
         datasets.MNIST('../data', train=False, transform=transforms.Compose([
@@ -163,7 +191,7 @@ if __name__ == '__main__':
     iter_on_loader = iter(test_loader)
     model = FNNModel1()
     model.load_state_dict(torch.load('../../model/fnn_model_mnist_1.pth', map_location=torch.device('cpu')))
-    for i in range(1):
+    for i in range(10):
         print("=" * 20)
         print("image {}:".format(i))
         instrument = {}
@@ -181,7 +209,6 @@ if __name__ == '__main__':
         for l in labels:
             if l.item() != label:
                 spurious_labels.append(l.item())
-                break
 
         print("spurious label: ", spurious_labels)
         save_model_start = time.monotonic()
@@ -190,7 +217,7 @@ if __name__ == '__main__':
         instrument['save_model_duration'] = save_model_duration
 
         verify_start = time.monotonic()
-        result = determine_robustness_with_epsilon((5, 5), spurious_labels, 0.5, model_filepath, verify_with_marabou)
+        result = determine_robustness_with_epsilon((5, 5), spurious_labels, 0.4, model_filepath, verify_with_marabou)
         verify_duration = time.monotonic() - verify_start
         instrument['verify_duration'] = verify_duration
         instrument['robust'] = result
