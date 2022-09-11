@@ -7,9 +7,12 @@ from maraboupy import Marabou, MarabouNetwork
 from PIL import Image
 import numpy as np
 import torch
+import torch.utils.data as data
+
 from gtsrb.gtsrb_dataset import GTSRB
 from torch.utils.data import DataLoader
-from torchvision import transforms
+from torchvision import transforms, datasets
+
 
 # load a network from onnx format file and return MarabouNetwork
 def load_network(filename) -> MarabouNetwork:
@@ -55,5 +58,22 @@ def get_test_images_loader(input_size, batch_size=1, output_dim=43, classes=rang
     test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=False)
     samples, labels = iter(test_loader).next()
     print("samples shape: ", samples.shape)
+
+    return test_loader
+
+
+def get_mnist_test_images_loader(batch_size=1, output_dim=10) -> DataLoader:
+    """
+    Use Pytorch to load test images
+    :param input_size: the size of input image, 2-tuple
+    :return: data_loader: Pytorch DataLoader
+    """
+    test_loader = data.DataLoader(
+        datasets.MNIST('../mnist/data', train=False, transform=transforms.Compose([
+            transforms.Resize((28, 28)),
+            transforms.ToTensor(),
+            transforms.Normalize((0.1307,), (0.3081,))
+        ])),
+        batch_size=1, shuffle=False)
 
     return test_loader
