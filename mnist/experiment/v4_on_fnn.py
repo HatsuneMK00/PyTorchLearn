@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # created by makise, 2022/7/28
+import json
 
+import argparse
 import numpy as np
 import torch
 import torch.nn as nn
@@ -11,9 +13,11 @@ from matplotlib import pyplot as plt
 from maraboupy import Marabou, MarabouCore
 
 import time
-from mnist.fnn_model_1 import FNNModel1
+from mnist.fnn_model_2 import FNNModel1
 from occlusion_layer.occlusion_layer_v4 import OcclusionLayer
 from find_robust_lb import determine_robustness_with_epsilon
+
+result = []
 
 class ExtendedModel(nn.Module):
     def __init__(self, occlusion_layer, origin_model):
@@ -54,7 +58,7 @@ def save_extended_model_onnx(image, model):
     extended_model = ExtendedModel(occlusion_layer, model)
     extended_model = extended_model.to(torch.device('cpu'))
     dummy_input = (torch.tensor([1.0, 1.0, 1.0, 1.0]), torch.ones(28 + 28) * 0.01)
-    onnx_model_filename = 'tmp/v4/' + 'fnn_model_mnist_1_extended_shrink.onnx'
+    onnx_model_filename = 'tmp/v4/' + 'fnn_model_mnist_2_extended_shrink.onnx'
     torch.onnx.export(extended_model, dummy_input, onnx_model_filename)
     return onnx_model_filename
 
@@ -99,12 +103,12 @@ def verify_with_marabou(model_filepath, label, a, b, size_a, size_b, epsilon):
     #     output_constraints.append([eq])
     # network.addDisjunctionConstraint(output_constraints)
 
-    options = Marabou.createOptions(solveWithMILP=True, verbosity=1)
+    options = Marabou.createOptions(solveWithMILP=True, verbosity=0)
     vals = network.solve(options=options)
     print("verification end")
     print("vals 0" + vals[0])
-    # print("vals 1")
-    # print(vals[1])
+    print("vals 1")
+    print(vals[1])
     return vals[0]
 
 
@@ -182,6 +186,16 @@ def baseline_of_marabou():
 if __name__ == '__main__':
     # show_occluded_image()
     # baseline_of_marabou()
+
+    # read parameters from command line
+    # has --epsilon
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--epsilon', type=float, required=True)
+    parser.add_argument('--sort', type=int, required=True)
+    args = parser.parse_args()
+    epsilon = args.epsilon
+    sort = args.sort
+
     test_loader = data.DataLoader(
         datasets.MNIST('../data', train=False, transform=transforms.Compose([
             transforms.ToTensor(),
@@ -190,8 +204,8 @@ if __name__ == '__main__':
         batch_size=1, shuffle=False)
     iter_on_loader = iter(test_loader)
     model = FNNModel1()
-    model.load_state_dict(torch.load('../../model/fnn_model_mnist_1.pth', map_location=torch.device('cpu')))
-    for i in range(10):
+    model.load_state_dict(torch.load('../../model/fnn_model_mnist_2.pth', map_location=torch.device('cpu')))
+    for i in range(30):
         print("=" * 20)
         print("image {}:".format(i))
         instrument = {}
@@ -210,6 +224,13 @@ if __name__ == '__main__':
             if l.item() != label:
                 spurious_labels.append(l.item())
 
+        if sort == 0:
+            print("user don't want to sort labels", flush=True)
+            spurious_labels = []
+            for j in range(10):
+                if j != label:
+                    spurious_labels.append(j)
+
         print("spurious label: ", spurious_labels)
         save_model_start = time.monotonic()
         model_filepath = save_extended_model_onnx(image, model)
@@ -217,8 +238,14 @@ if __name__ == '__main__':
         instrument['save_model_duration'] = save_model_duration
 
         verify_start = time.monotonic()
-        result = determine_robustness_with_epsilon((5, 5), spurious_labels, 0.4, model_filepath, verify_with_marabou)
+        robust = determine_robustness_with_epsilon((5, 5), spurious_labels, epsilon, model_filepath, verify_with_marabou)
         verify_duration = time.monotonic() - verify_start
         instrument['verify_duration'] = verify_duration
-        instrument['robust'] = result
+        instrument['robust'] = robust
+        result.append(instrument)
         print(instrument)
+
+    with open('result4_fnn2_{}_sort_{}.json'.format(epsilon, sort), 'w') as f:
+        json.dump(result, f)
+        f.write('\n')
+        f.flush()

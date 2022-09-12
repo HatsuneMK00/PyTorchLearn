@@ -2,6 +2,8 @@
 # created by makise, 2022/8/26
 
 import json
+
+import argparse
 import numpy as np
 import torch
 import torch.nn as nn
@@ -13,7 +15,7 @@ from maraboupy import Marabou, MarabouCore
 
 import time
 from gtsrb.gtsrb_dataset import GTSRB
-from gtsrb.fnn_model_2 import SmallDNNModel2
+from gtsrb.fnn_model_3 import SmallDNNModel3
 from occlusion_layer.occlusion_layer_v4 import OcclusionLayer
 from task import determine_robustness_with_epsilon
 
@@ -37,7 +39,7 @@ def save_extended_model_onnx(image, model):
     extended_model = ExtendedModel(occlusion_layer, model)
     extended_model = extended_model.to(torch.device('cpu'))
     dummy_input = (torch.tensor([1.0, 1.0, 1.0, 1.0]), torch.ones(32 + 32) * 0.01)
-    onnx_model_filename = 'tmp/v4/' + 'fnn_model_gtsrb_2_extended_shrink.onnx'
+    onnx_model_filename = 'tmp/v4/' + 'fnn_model_gtsrb_3_extended_shrink.onnx'
     torch.onnx.export(extended_model, dummy_input, onnx_model_filename)
     return onnx_model_filename
 
@@ -94,6 +96,18 @@ def verify_with_marabou(model_filepath, label, a, b, size_a, size_b, epsilon):
 if __name__ == '__main__':
     # show_occluded_image()
     # baseline_of_marabou()
+
+    # read parameters from command line
+    # has --epsilon
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--epsilon', type=float, required=True)
+    parser.add_argument('--sort', type=int, default=1)
+    args = parser.parse_args()
+    epsilon = args.epsilon
+    sort = args.sort
+
+    print("sort: ", sort, flush=True)
+
     transform = transforms.Compose([
         transforms.Resize((32, 32)),
         transforms.ToTensor(),
@@ -103,8 +117,8 @@ if __name__ == '__main__':
     test_loader = data.DataLoader(dataset=test_data, batch_size=1, shuffle=False)
 
     iter_on_loader = iter(test_loader)
-    model = SmallDNNModel2()
-    model.load_state_dict(torch.load('../../model/fnn_model_gtsrb_small_2.pth', map_location=torch.device('cpu')))
+    model = SmallDNNModel3()
+    model.load_state_dict(torch.load('../../model/fnn_model_gtsrb_small_3.pth', map_location=torch.device('cpu')))
     for i in range(30):
         print("=" * 20)
         print("image {}:".format(i))
@@ -113,9 +127,6 @@ if __name__ == '__main__':
 
         total_time_start = time.monotonic()
         image, label = iter_on_loader.next()
-
-        if i != 6:
-            continue
 
         image = image.reshape(3, 32, 32)
         label = label.item()
@@ -131,13 +142,20 @@ if __name__ == '__main__':
                 spurious_labels.append(l.item())
 
         print("spurious label: ", spurious_labels)
+        if sort == 0:
+            print("user don't want to sort labels", flush=True)
+            spurious_labels = []
+            for j in range(7):
+                if j != label:
+                    spurious_labels.append(j)
+
         save_model_start = time.monotonic()
         model_filepath = save_extended_model_onnx(image, model)
         save_model_duration = time.monotonic() - save_model_start
         instrument['save_model_duration'] = save_model_duration
 
         verify_start = time.monotonic()
-        robust, adversarial_example = determine_robustness_with_epsilon((5, 5), spurious_labels, 0.4, model_filepath, verify_with_marabou)
+        robust, adversarial_example = determine_robustness_with_epsilon((5, 5), spurious_labels, epsilon, model_filepath, verify_with_marabou)
         verify_duration = time.monotonic() - verify_start
         instrument['verify_duration'] = verify_duration
         instrument['robust'] = robust
@@ -145,7 +163,7 @@ if __name__ == '__main__':
         result.append(instrument)
         print(instrument)
 
-    with open('result4.json', 'w') as f:
+    with open(f'result4_{epsilon}_sort_{sort}.json', 'w') as f:
         json.dump(result, f)
         f.write('\n')
         f.flush()
