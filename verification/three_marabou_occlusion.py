@@ -4,7 +4,7 @@
 # corresponding to the thought #3 in the doc
 # given occlusion color, given occlusion size, verify that no matter where the occlusion area is
 # network can classify correctly
-
+import argparse
 import json
 import os
 
@@ -23,20 +23,13 @@ from occlusion_bound import calculate_entire_bounds
 from interpolation import occlusion
 
 # define some global variables
-model_name = "cnn_model_gtsrb_small_2.onnx"
 occlusion_size = (2, 2)
 occlusion_color = 0
-input_size = (32, 32)
-channel = 3
-output_dim = 7
-batch_num = 1
+batch_num = 10
 result_file_dir = '/home/GuoXingWu/pycharm_project_368/experiment/results/thought_3/'
 timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime(time.time()))
 use_marabou = True
 
-block_size = (32, 32) # the size of a sub verification problem, the area where occlusion can be applied
-
-mean, std = np.array([0.3337, 0.3064, 0.3171]), np.array([0.2672, 0.2564, 0.2629])
 epsilon = 1e-3
 
 
@@ -63,20 +56,24 @@ def verify_occlusion_by_dividing(image: np.array, label: int, occlusion_size: tu
     with pebble.ProcessPool(1) as pool:
         for i in range(block_num[0]):
             print("current block: ", i, i)
-            parameter = (image, label, occlusion_size, occlusion_color, block_size, i * block_size[0], i * block_size[1])
-            future = pool.schedule(verify_occlusion_with_fixed_size, parameter, timeout=60)
-            verify_time = 60
-            constraints_calculation_time = 0
-            try:
-                sat, result, constraints_calculation_time, verify_time = future.result()
-            except Exception as error:
-                print("timeout or error occurred for block: ", i, i)
-                print(error)
-                sat = 'unsat'
-            total_constraints_calculation_time += constraints_calculation_time
-            total_verify_time += verify_time
-            if sat == 'sat':
-                return [sat, result], total_constraints_calculation_time, total_verify_time
+            for l in range(output_dim):
+                print("current label: ", l)
+                if l == label:
+                    continue
+                parameter = (image, l, occlusion_size, occlusion_color, (block_size[0] + occlusion_size[0], block_size[1] + occlusion_size[1]), i * block_size[0], i * block_size[1])
+                future = pool.schedule(verify_occlusion_with_fixed_size, parameter, timeout=60)
+                verify_time = 60
+                constraints_calculation_time = 0
+                try:
+                    sat, result, constraints_calculation_time, verify_time = future.result()
+                except Exception as error:
+                    print("timeout or error occurred for block: ", i, i)
+                    print(error)
+                    sat = 'unsat'
+                total_constraints_calculation_time += constraints_calculation_time
+                total_verify_time += verify_time
+                if sat == 'sat':
+                    return [sat, result], total_constraints_calculation_time, total_verify_time
 
     return vals, total_constraints_calculation_time, total_verify_time
 
@@ -99,7 +96,11 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
     constraints_calculation_start_time = time.monotonic()
     # load network
     network = load_network(model_name)
-    inputs = network.inputVars[0][0]  # 3*32*32
+
+    inputs = network.inputVars[0][0]  # 3*32*32 or 28*28
+    # only fot mnist
+    if inputs.shape[0] == 28:
+        inputs = np.reshape(inputs, (1, 28, 28))
     outputs = network.outputVars[0]  # {output_dim}
     n_outputs = outputs.flatten().shape[0]
     assert image.shape == inputs.shape
@@ -113,9 +114,9 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
     x = network.getNewVariable()
     y = network.getNewVariable()
     x_lower_bound = max(0, width_offset - occlusion_width + 1)
-    x_upper_bound = block_size[1] - occlusion_width + width_offset
+    x_upper_bound = min(block_size[1] - occlusion_width + width_offset, h)
     y_lower_bound = max(0, height_offset - occlusion_height + 1)
-    y_upper_bound = block_size[0] - occlusion_height + height_offset
+    y_upper_bound = min(block_size[0] - occlusion_height + height_offset, w)
     network.setLowerBound(x, x_lower_bound)
     # fixme this may be larger than current value
     network.setUpperBound(x, x_upper_bound)
@@ -125,8 +126,8 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
     print(f'x: [{x_lower_bound}, {x_upper_bound}]', )
 
     # iterate over the target block of image
-    for i in range(height_offset, height_offset + block_size[0]):
-        for j in range(width_offset, width_offset + block_size[1]):
+    for i in range(height_offset, min(height_offset + block_size[0], h)):
+        for j in range(width_offset, min(width_offset + block_size[1], w)):
             # print(f'current pixel: {i}, {j}')
             # occlusion point cover (i, j)
             # the constraints should have size like [[eq1, eq2], [eq3, eq4], ...]
@@ -227,20 +228,20 @@ def verify_occlusion_with_fixed_size(image: np.array, label: int, occlusion_size
 
     # add bounds to output
     # new output constraints using disjunction constraints
-    output_constraints = []
-    for i in range(output_dim):
-        if i == label:
-            continue
-        eq = MarabouCore.Equation(MarabouCore.Equation.GE)
-        eq.addAddend(1, outputs[i])
-        eq.addAddend(-1, outputs[label])
-        eq.setScalar(0)
-        output_constraints.append([eq])
-    network.addDisjunctionConstraint(output_constraints)
-    # # origin output constraints
-    # for i in range(n_outputs):
-    #     if i != label:
-    #         network.addInequality([outputs_flattened[i], outputs_flattened[label]], [1, -1], 0)
+    # output_constraints = []
+    # for i in range(output_dim):
+    #     if i == label:
+    #         continue
+    #     eq = MarabouCore.Equation(MarabouCore.Equation.GE)
+    #     eq.addAddend(1, outputs[i])
+    #     eq.addAddend(-1, outputs[label])
+    #     eq.setScalar(0)
+    #     output_constraints.append([eq])
+    # network.addDisjunctionConstraint(output_constraints)
+    # origin output constraints
+    for i in range(n_outputs):
+        if i != label:
+            network.addInequality([outputs[i], outputs[label]], [1, -1], 0)
     constraints_calculation_end_time = time.monotonic()
     constraints_calculation_time = constraints_calculation_end_time - constraints_calculation_start_time
 
@@ -400,7 +401,50 @@ def conduct_experiment(occlusion_size, occlusion_color, block_size, pe_timestamp
 
 
 if __name__ == '__main__':
-    img_loader = get_test_images_loader(input_size, output_dim=output_dim, classes=[1, 2, 3, 4, 5, 7, 8])
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--model', type=int, required=True)
+    parser.add_argument('--dataset', type=str, required=True)
+    args = parser.parse_args()
+    model_seq = args.model
+    dataset = args.dataset
+
+    global model_name
+    global input_size
+    global output_dim
+    global channel
+    global mean, std
+
+    if dataset == 'mnist':
+        if model_seq == 1:
+            model_name = "fnn_model_mnist_1.onnx"
+        elif model_seq == 2:
+            model_name = "fnn_model_mnist_2.onnx"
+        elif model_seq == 3:
+            model_name = "fnn_model_mnist_3.onnx"
+        channel = 1
+        input_size = (28, 28)
+        output_dim = 10
+        mean = np.array([0.1307])
+        std = np.array([0.3081])
+        block_size = (7, 7)
+    elif dataset == 'gtsrb':
+        if model_seq == 1:
+            model_name = "fnn_model_gtsrb_small_1_different_class.onnx"
+        elif model_seq == 2:
+            model_name = "fnn_model_gtsrb_small_2.onnx"
+        elif model_seq == 3:
+            model_name = "fnn_model_gtsrb_small_3.onnx"
+        channel = 3
+        input_size = (32, 32)
+        output_dim = 7
+        mean, std = np.array([0.3337, 0.3064, 0.3171]), np.array([0.2672, 0.2564, 0.2629])
+        block_size = (8, 8)
+    else:
+        raise Exception("not supported dataset")
+
+    # img_loader = get_test_images_loader(input_size, output_dim=output_dim, classes=[1, 2, 3, 4, 5, 7, 8])
+    img_loader = get_test_images_loader(input_size, output_dim=output_dim, classes=[1, 2, 3, 4, 5, 7, 8]) if dataset == 'gtsrb' else get_mnist_test_images_loader()
     iterable_img_loader = iter(img_loader)
 
     # if not use_marabou:
@@ -471,6 +515,7 @@ if __name__ == '__main__':
         total_time = time.monotonic() - start_time
 
         print(f"result for {i}")
+        print("total time: ", total_time)
         print(results_batch, flush=True)
         results.append(
             {'total_verify_time': total_time,

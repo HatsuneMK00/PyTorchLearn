@@ -16,7 +16,7 @@ import three_marabou_occlusion
 import four_marabou_occlusion
 from verification.show_adv_example import get_adv_examples
 
-experiment_num = 4
+experiment_num = 3
 pe_result_dir = "/home/GuoXingWu/occlusion_veri/PyTorchLearn/experiment/results/thought_3/pe_20220409_142644/"
 analysis = False
 
@@ -57,10 +57,10 @@ if __name__ == '__main__':
     timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime(time.time()))
 
     if experiment_num == 3:
-        block_sizes = [(32, 32)]
+        block_sizes = [(8, 8)]
         occlusion_color = 0
         # occlusion size is a list of tuple (i, i), i ranges from 0 to 31
-        occlusion_sizes = [(i, i) for i in range(8, 16)]
+        occlusion_sizes = [(i, i) for i in range(1, 11)]
         for block_size in block_sizes:
             for occlusion_size in occlusion_sizes:
                 parameters.append((occlusion_size, occlusion_color, block_size, timestamp))
@@ -69,12 +69,12 @@ if __name__ == '__main__':
         # conduct experiment parallely with concurrent.futures
         with pebble.ProcessPool(1) as pool:
             for parameter in parameters:
-                future = pool.schedule(three_marabou_occlusion.conduct_experiment, parameter)
+                future = pool.schedule(three_marabou_occlusion.conduct_experiment, parameter, timeout=60 * 30)
                 try:
-                    future.result(timeout=60 * 60 * 3)
+                    future.result()
                     print("Parallel Experiment: Complete for {}".format(parameter), flush=True)
                 except TimeoutError:
-                    future.cancel()
+                    # future.cancel()
                     print("Parallel Experiment: Timeout for {}".format(parameter), flush=True)
     elif experiment_num == 4:
         block_sizes = [(32, 32)]

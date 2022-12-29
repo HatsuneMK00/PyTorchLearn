@@ -13,22 +13,25 @@ from gtsrb.cnn_model_small import SmallCNNModel
 from gtsrb.fnn_model_1 import SmallDNNModel
 from gtsrb.fnn_model_2 import SmallDNNModel2
 from gtsrb.cnn_model_small_2 import SmallCNNModel2
-
+from gtsrb.fnn_model_3 import SmallDNNModel3
+from mnist.fnn_model_1 import FNNModel1 as MNISTFNNModel1
+from mnist.fnn_model_3 import FNNModel1 as MNISTFNNModel3
+from mnist.fnn_model_2 import FNNModel1 as MNISTFNNModel2
 import onnx
 import onnxruntime
 
 # define some global parameters for exporting the pytorch model
-model_name = 'gtsrb_cnn_small_2'
+model_name = 'mnist_fnn_2'
 use_device = 'cpu'
-input_size = (32, 32)
-channel_num = 3
-output_dim = 7
+input_size = (28, 28)
+channel_num = 1
+output_dim = 10
 batch_size = 1
-model_path = 'model/cnn_model_gtsrb_small_2.pth'
-onnx_model_path = 'model/cnn_model_gtsrb_small_2.onnx'  # only used in testing
+model_path = 'model/fnn_model_mnist_2.pth'
+onnx_model_path = 'model/fnn_model_gtsrb_small_3.onnx'  # only used in testing
 model_save_dir = 'model/'
-only_export = False
-only_test = True
+only_export = True
+only_test = False
 
 
 def initialize_model(model_name):
@@ -40,6 +43,14 @@ def initialize_model(model_name):
         model = SmallDNNModel2()
     elif model_name == 'gtsrb_cnn_small_2':
         model = SmallCNNModel2()
+    elif model_name == 'gtsrb_fnn_3':
+        model = SmallDNNModel3()
+    elif model_name == 'mnist_fnn_1':
+        model = MNISTFNNModel1()
+    elif model_name == 'mnist_fnn_3':
+        model = MNISTFNNModel3()
+    elif model_name == 'mnist_fnn_2':
+        model = MNISTFNNModel2()
     else:
         raise ValueError('model name is not defined')
 
