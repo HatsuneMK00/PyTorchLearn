@@ -15,8 +15,8 @@ import torchvision
 import torch.nn as nn
 import torch.utils.data as data
 
-from fnn_model_2 import SmallDNNModel2
-from fnn_model_2 import OUTPUT_SIZE
+from fnn_model_1 import SmallDNNModel
+from fnn_model_1 import OUTPUT_SIZE
 
 from gtsrb_dataset import GTSRB
 from torchvision import transforms
@@ -43,7 +43,7 @@ train_dataset, valid_dataset = data.random_split(train_data, [train_size, valid_
 
 # define hyper parameters
 batch_size = 64
-epochs = 10
+epochs = 30
 output_dim = OUTPUT_SIZE
 
 # create data loader for training and validation
@@ -73,7 +73,7 @@ print(samples.shape, labels.shape)
 
 
 # define the model
-model = SmallDNNModel2().to(device)
+model = SmallDNNModel().to(device)
 
 # define the loss function and optimizer
 criterion = nn.CrossEntropyLoss()
@@ -153,7 +153,7 @@ for epoch in range(epochs):
 
 print('Finished Training')
 try:
-    torch.save(model.state_dict(), '../model/fnn_model_gtsrb_small_2.pth')
+    torch.save(model.state_dict(), '../model/fnn_model_gtsrb_small_1_different_class.pth')
 except Exception as e:
     print('Exception: ', e)
 
