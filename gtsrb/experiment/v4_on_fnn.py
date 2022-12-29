@@ -128,6 +128,9 @@ if __name__ == '__main__':
         total_time_start = time.monotonic()
         image, label = iter_on_loader.next()
 
+        if i not in [1, 3, 4, 14, 15, 18, 19, 26, 28]:
+            continue
+
         image = image.reshape(3, 32, 32)
         label = label.item()
 
@@ -155,7 +158,7 @@ if __name__ == '__main__':
         instrument['save_model_duration'] = save_model_duration
 
         verify_start = time.monotonic()
-        robust, adversarial_example = determine_robustness_with_epsilon((5, 5), spurious_labels, epsilon, model_filepath, verify_with_marabou)
+        robust, adversarial_example = determine_robustness_with_epsilon((2, 2), spurious_labels, epsilon, model_filepath, verify_with_marabou)
         verify_duration = time.monotonic() - verify_start
         instrument['verify_duration'] = verify_duration
         instrument['robust'] = robust
@@ -163,7 +166,7 @@ if __name__ == '__main__':
         result.append(instrument)
         print(instrument)
 
-    with open(f'result4_{epsilon}_sort_{sort}.json', 'w') as f:
+    with open(f'result4_{epsilon}_sort_{sort}_fnn3_size2_for_example.json', 'w') as f:
         json.dump(result, f)
         f.write('\n')
         f.flush()

@@ -13,7 +13,7 @@ from matplotlib import pyplot as plt
 from maraboupy import Marabou, MarabouCore
 
 import time
-from mnist.fnn_model_2 import FNNModel1
+from mnist.fnn_model_3 import FNNModel1
 from occlusion_layer.occlusion_layer_v4 import OcclusionLayer
 from find_robust_lb import determine_robustness_with_epsilon
 
@@ -58,7 +58,7 @@ def save_extended_model_onnx(image, model):
     extended_model = ExtendedModel(occlusion_layer, model)
     extended_model = extended_model.to(torch.device('cpu'))
     dummy_input = (torch.tensor([1.0, 1.0, 1.0, 1.0]), torch.ones(28 + 28) * 0.01)
-    onnx_model_filename = 'tmp/v4/' + 'fnn_model_mnist_2_extended_shrink.onnx'
+    onnx_model_filename = 'tmp/v4/' + 'fnn_model_mnist_3_extended_shrink.onnx'
     torch.onnx.export(extended_model, dummy_input, onnx_model_filename)
     return onnx_model_filename
 
@@ -109,7 +109,7 @@ def verify_with_marabou(model_filepath, label, a, b, size_a, size_b, epsilon):
     print("vals 0" + vals[0])
     print("vals 1")
     print(vals[1])
-    return vals[0]
+    return vals[0], vals[1]
 
 
 def get_a_test_image():
@@ -177,7 +177,7 @@ def baseline_of_marabou():
         vals = network.solve(verbose=1)
         print("vals: ", vals)
 
-    network = Marabou.read_onnx('../../model/fnn_model_mnist_2.onnx')
+    network = Marabou.read_onnx('../../model/fnn_model_mnist_1.onnx')
     image, label = get_a_test_image()
     epsilon = 0.5
 
@@ -196,6 +196,9 @@ if __name__ == '__main__':
     epsilon = args.epsilon
     sort = args.sort
 
+    print("epsilon: ", epsilon)
+    print("sort: ", sort, flush=True)
+
     test_loader = data.DataLoader(
         datasets.MNIST('../data', train=False, transform=transforms.Compose([
             transforms.ToTensor(),
@@ -204,7 +207,7 @@ if __name__ == '__main__':
         batch_size=1, shuffle=False)
     iter_on_loader = iter(test_loader)
     model = FNNModel1()
-    model.load_state_dict(torch.load('../../model/fnn_model_mnist_2.pth', map_location=torch.device('cpu')))
+    model.load_state_dict(torch.load('../../model/fnn_model_mnist_3.pth', map_location=torch.device('cpu')))
     for i in range(30):
         print("=" * 20)
         print("image {}:".format(i))
@@ -238,14 +241,15 @@ if __name__ == '__main__':
         instrument['save_model_duration'] = save_model_duration
 
         verify_start = time.monotonic()
-        robust = determine_robustness_with_epsilon((5, 5), spurious_labels, epsilon, model_filepath, verify_with_marabou)
+        robust, adversarial_example = determine_robustness_with_epsilon((5, 5), spurious_labels, epsilon / 2, model_filepath, verify_with_marabou)
         verify_duration = time.monotonic() - verify_start
         instrument['verify_duration'] = verify_duration
         instrument['robust'] = robust
+        instrument['adversarial_example'] = adversarial_example
         result.append(instrument)
         print(instrument)
 
-    with open('result4_fnn2_{}_sort_{}.json'.format(epsilon, sort), 'w') as f:
+    with open('result4_fnn3_{}_sort_{}_size5_1028_0124.json'.format(epsilon, sort), 'w') as f:
         json.dump(result, f)
         f.write('\n')
         f.flush()

@@ -26,7 +26,7 @@ def save_extended_model_onnx(image, model):
         *list(model.children())[1:]
     )
     extended_model = extended_model.to(torch.device('cpu'))
-    dummy_input = torch.tensor([1.0, 1.0, 1.0, 1.0, 0.0])
+    dummy_input = torch.tensor([1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
     onnx_model_filename = 'tmp/v3/' + 'fnn_model_gtsrb_3_extended_shrink.onnx'
     torch.onnx.export(extended_model, dummy_input, onnx_model_filename)
     return onnx_model_filename
@@ -51,12 +51,16 @@ def verify_with_marabou(model_filepath, label, a, b, size_a, size_b, color):
     network.setUpperBound(inputs[3], size_b_upper)
     network.setLowerBound(inputs[4], color_lower)
     network.setUpperBound(inputs[4], color_upper)
+    network.setLowerBound(inputs[5], color_lower)
+    network.setUpperBound(inputs[5], color_upper)
+    network.setLowerBound(inputs[6], color_lower)
+    network.setUpperBound(inputs[6], color_upper)
 
     for i in range(n_outputs):
         if i != label:
             network.addInequality([outputs[i], outputs[label]], [1, -1], -1e-6)
 
-    options = Marabou.createOptions(solveWithMILP=True, verbosity=0)
+    options = Marabou.createOptions(solveWithMILP=False, verbosity=0)
     # signal.alarm(60)
     vals = network.solve(options=options)
     # signal.alarm(0)
@@ -106,11 +110,11 @@ if __name__ == '__main__':
         instrument['save_model_duration'] = save_model_duration
 
         verify_start = time.monotonic()
-        robusts, color_times = determine_robustness(3, spurious_labels, model_filepath, verify_with_marabou)
+        robusts, size_times = determine_robustness_color_fixed((1, 10), spurious_labels, model_filepath, verify_with_marabou)
         verify_duration = time.monotonic() - verify_start
         instrument['verify_duration'] = verify_duration
         instrument['robusts'] = robusts
-        instrument['color_times'] = color_times
+        instrument['size_times'] = size_times
         print(instrument)
         result.append(instrument)
 
